@@ -117,6 +117,10 @@ app.post("/api/auth/signin", async (req, res) => {
   }
 });
 
+app.post("/api/note/create", async (req, res) => {
+  
+});
+
 app.listen(PORT, () => {
   console.log(`Server started at port ${PORT}`);
 });
