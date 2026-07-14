@@ -8,6 +8,8 @@ import {
   signinSchema,
   type SignupInput,
 } from "./schemas/auth.js";
+import { noteSchema, type NoteInput } from "./schemas/note.js";
+import { authMiddleware } from "./middlewares/auth.middleware.js";
 
 const PORT = process.env.PORT;
 const app = express();
@@ -117,8 +119,48 @@ app.post("/api/auth/signin", async (req, res) => {
   }
 });
 
-app.post("/api/note/create", async (req, res) => {
-  
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+    }
+  }
+}
+
+app.post("/api/note/create", authMiddleware, async (req, res) => {
+  try {
+    const result = noteSchema.safeParse(req.body);
+    const userId = req.userId!;
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.error.issues[0]?.message,
+      });
+    }
+
+    const noteData: NoteInput = result.data;
+
+    const newNote = await prisma.$transaction(async (tx) => {
+      return tx.note.create({
+        data: {
+          content: noteData.content,
+          userId: userId,
+          title: noteData.title || "",
+        },
+      });
+    });
+
+    res.json({
+      success: true,
+      newNote,
+    });
+  } catch (error) {
+    console.error("Error while creating a new note", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while creating note",
+    });
+  }
 });
 
 app.listen(PORT, () => {

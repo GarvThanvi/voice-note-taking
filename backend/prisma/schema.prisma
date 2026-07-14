@@ -31,7 +31,8 @@ model Note {
   id Int @id @default(autoincrement())
   userId Int
   user User @relation(fields: [userId], references: [id])
-  type NoteType
+  title String?
+  type NoteType @default(PARAGRAPH)
   content String
   archived Boolean @default(false)
   bookmarked Boolean @default(false)

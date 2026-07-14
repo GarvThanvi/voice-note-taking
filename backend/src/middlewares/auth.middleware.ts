@@ -1,10 +1,11 @@
 import type { Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import jwt, { type JwtPayload } from "jsonwebtoken";
+import { decode } from "node:punycode";
 dotenv.config();
 
 interface AuthRequest extends Request {
-  userId?: string;
+  userId?: number;
 }
 
 export const authMiddleware = async (
@@ -22,7 +23,8 @@ export const authMiddleware = async (
       token,
       process.env.JWT_SECRET!,
     ) as JwtPayload;
-    req.userId = decoded.id;
+
+    req.userId = decoded.userId;
     next();
   } catch (error) {
     console.error("Error while verifying bearer token", error);
