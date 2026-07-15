@@ -130,7 +130,7 @@ declare global {
 app.post("/api/note/create", authMiddleware, async (req, res) => {
   try {
     const result = noteSchema.safeParse(req.body);
-    const userId = req.userId!;
+    const userId: number = req.userId!;
     if (!result.success) {
       return res.status(400).json({
         success: false,
@@ -159,6 +159,52 @@ app.post("/api/note/create", authMiddleware, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error while creating note",
+    });
+  }
+});
+
+app.delete("/api/note/delete/:noteId", authMiddleware, async (req, res) => {
+  try {
+    const noteId = Number(req.params.noteId);
+    const userId = req.userId!;
+
+    if (isNaN(noteId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid note ID",
+      });
+    }
+
+    const note = await prisma.note.findFirst({
+      where: {
+        id: noteId,
+        userId,
+      },
+    });
+
+    if (!note) {
+      return res.status(404).json({
+        success: false,
+        message: "Note not found",
+      });
+    }
+
+    await prisma.note.delete({
+      where: {
+        id: noteId,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Note deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting note:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
     });
   }
 });
