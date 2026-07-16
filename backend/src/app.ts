@@ -8,7 +8,12 @@ import {
   signinSchema,
   type SignupInput,
 } from "./schemas/auth.js";
-import { noteSchema, type NoteInput } from "./schemas/note.js";
+import {
+  noteSchema,
+  updateNoteSchema,
+  type NoteInput,
+  type UpdateNoteInput,
+} from "./schemas/note.js";
 import { authMiddleware } from "./middlewares/auth.middleware.js";
 
 const PORT = process.env.PORT;
@@ -163,7 +168,7 @@ app.post("/api/note/create", authMiddleware, async (req, res) => {
   }
 });
 
-app.delete("/api/note/delete/:noteId", authMiddleware, async (req, res) => {
+app.delete("/api/note/:noteId", authMiddleware, async (req, res) => {
   try {
     const noteId = Number(req.params.noteId);
     const userId = req.userId!;
@@ -202,6 +207,81 @@ app.delete("/api/note/delete/:noteId", authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("Error deleting note:", error);
 
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+app.put("/api/note/:noteId", authMiddleware, async (req, res) => {
+  try {
+    const noteId = Number(req.params.noteId);
+    const userId = req.userId!;
+
+    if (isNaN(noteId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid note ID",
+      });
+    }
+
+    const result = updateNoteSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.error.issues[0]?.message ?? "Validation failed",
+      });
+    }
+
+    const { todos, ...fields } = result.data;
+    const cleanFields = Object.fromEntries(
+      Object.entries(fields).filter(([_, v]) => v !== undefined),
+    );
+
+    const updatedNote = await prisma.$transaction(async (tx) => {
+      const existing = await tx.note.findFirst({
+        where: { id: noteId, userId },
+        include: { todos: true },
+      });
+
+      if (!existing) {
+        throw new Error("NOTE_NOT_FOUND");
+      }
+
+      const updated = await tx.note.update({
+        where: { id: noteId },
+        data: cleanFields,
+      });
+
+      if (todos !== undefined) {
+        await tx.todo.deleteMany({ where: { noteId } });
+        if (todos.length > 0) {
+          await tx.todo.createMany({
+            data: todos.map((text, index) => ({
+              noteId,
+              text,
+              order: index,
+            })),
+          });
+        }
+      }
+
+      return tx.note.findUnique({
+        where: { id: noteId },
+        include: { todos: { orderBy: { order: "asc" } } },
+      });
+    });
+
+    res.json({ success: true, note: updatedNote });
+  } catch (error) {
+    if (error instanceof Error && error.message === "NOTE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Note not found",
+      });
+    }
+    console.error("Error updating note:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
