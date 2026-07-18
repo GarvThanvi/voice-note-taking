@@ -15,6 +15,7 @@ import {
   type UpdateNoteInput,
 } from "./schemas/note.js";
 import { authMiddleware } from "./middlewares/auth.middleware.js";
+import { es } from "zod/locales";
 
 const PORT = process.env.PORT;
 const app = express();
@@ -132,7 +133,64 @@ declare global {
   }
 }
 
-app.post("/api/note/create", authMiddleware, async (req, res) => {
+app.get("/api/note", authMiddleware, async (req, res) => {
+  try {
+    const userId: number = req.userId!;
+
+    const notes = await prisma.note.findMany({
+      where: { userId },
+      include: { todos: true },
+    });
+
+    if (notes.length <= 0) {
+      return res
+        .status(200)
+        .json({ success: true, message: "User does not have any notes" });
+    }
+
+    const formattedNotes = notes.map((note) => {
+      if (note.type === "PARAGRAPH") {
+        return {
+          id: note.id,
+          userId: note.userId,
+          title: note.title,
+          type: note.type,
+          content: note.content,
+          archived: note.archived,
+          bookmarked: note.bookmarked,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt,
+        };
+      }
+      if (note.type === "CHECKBOX") {
+        return {
+          id: note.id,
+          userId: note.userId,
+          title: note.title,
+          type: note.type,
+          todos: note.todos,
+          archived: note.archived,
+          bookmarked: note.bookmarked,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt,
+        };
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: formattedNotes,
+    });
+  } catch (error) {
+    console.error("Error while fetching all notes for a user ", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+app.post("/api/note", authMiddleware, async (req, res) => {
   try {
     const result = noteSchema.safeParse(req.body);
     const userId: number = req.userId!;
