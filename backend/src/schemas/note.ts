@@ -1,8 +1,10 @@
 import * as z from "zod";
 
 export const noteSchema = z.object({
-  content: z.string(),
-  title: z.string().optional()
+  content: z.string().optional(),
+  title: z.string().optional(),
+  type: z.enum(["CHECKBOX", "PARAGRAPH"]),
+  todos: z.array(z.string()).optional(),
 });
 
 export type NoteInput = z.infer<typeof noteSchema>;

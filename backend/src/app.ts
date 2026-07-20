@@ -15,7 +15,6 @@ import {
   type UpdateNoteInput,
 } from "./schemas/note.js";
 import { authMiddleware } from "./middlewares/auth.middleware.js";
-import { es } from "zod/locales";
 
 const PORT = process.env.PORT;
 const app = express();
@@ -204,13 +203,50 @@ app.post("/api/note", authMiddleware, async (req, res) => {
     const noteData: NoteInput = result.data;
 
     const newNote = await prisma.$transaction(async (tx) => {
-      return tx.note.create({
-        data: {
-          content: noteData.content,
-          userId: userId,
-          title: noteData.title || "",
-        },
-      });
+      if (noteData.type === "PARAGRAPH") {
+        return tx.note.create({
+          data: {
+            type: "PARAGRAPH",
+            content: noteData.content!,
+            userId,
+            title: noteData.title || "",
+          },
+        });
+      }
+
+      if (noteData.type === "CHECKBOX") {
+        const note = await tx.note.create({
+          data: {
+            type: "CHECKBOX",
+            userId,
+            title: noteData.title || "",
+            content: "",
+          },
+        });
+
+        if (noteData.todos && noteData.todos.length > 0) {
+          await tx.todo.createMany({
+            data: noteData.todos.map((text, index) => ({
+              noteId: note.id,
+              text,
+              order: index,
+            })),
+          });
+        }
+
+        return tx.note.findUnique({
+          where: { id: note.id },
+          include: {
+            todos: {
+              orderBy: {
+                order: "asc",
+              },
+            },
+          },
+        });
+      }
+
+      throw new Error("INVALID_NOTE_TYPE");
     });
 
     res.json({
