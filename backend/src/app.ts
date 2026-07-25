@@ -15,6 +15,7 @@ import {
   type UpdateNoteInput,
 } from "./schemas/note.js";
 import { authMiddleware } from "./middlewares/auth.middleware.js";
+import { set } from "zod";
 
 const PORT = process.env.PORT;
 const app = express();
@@ -376,6 +377,84 @@ app.put("/api/note/:noteId", authMiddleware, async (req, res) => {
       });
     }
     console.error("Error updating note:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+app.put("/api/note/todo/complete/:noteId", authMiddleware, async (req, res) => {
+  try {
+    const { todoIds, done } = req.body;
+    const noteId = Number(req.params.noteId);
+    const userId = req.userId!;
+    const setDone = done !== undefined ? done : true;
+
+    if (isNaN(noteId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid note ID",
+      });
+    }
+
+    if (
+      !Array.isArray(todoIds) ||
+      todoIds.some((id) => typeof id !== "number" || isNaN(id))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid todoIds: must be an array of number",
+      });
+    }
+
+    const note = await prisma.note.findFirst({
+      where: {
+        id: noteId,
+        userId,
+      },
+      include: { todos: true },
+    });
+
+    if (!note) {
+      return res.status(404).json({
+        success: false,
+        message: "Note not found",
+      });
+    }
+
+    const existingTodos = await prisma.todo.findMany({
+      where: {
+        noteId,
+        id: { in: todoIds },
+      },
+    });
+
+    if (existingTodos.length !== todoIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: `Some todoIds do not belong to this note`,
+      });
+    }
+
+    await prisma.todo.updateMany({
+      where: {
+        noteId,
+        id: { in: todoIds },
+      },
+      data: {
+        done: setDone,
+      },
+    });
+
+    const updatedNote = await prisma.note.findUnique({
+      where: { id: noteId },
+      include: { todos: { orderBy: { order: "asc" } } },
+    });
+
+    res.json({ success: true, note: updatedNote });
+  } catch (error) {
+    console.error("Error updating todos:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
