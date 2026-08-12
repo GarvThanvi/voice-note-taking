@@ -1,8 +1,12 @@
-import React from 'react'
+import Features from '../components/LandingPage/Features'
+import Shortcuts from '../components/LandingPage/Shortcuts'
 
 const LandingPage = () => {
   return (
-    <div>LandingPage</div>
+    <div>
+      <Features></Features>
+      <Shortcuts></Shortcuts>
+    </div>
   )
 }
 

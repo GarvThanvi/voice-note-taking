@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  /* ================================
+     Colors
+     ================================ */
+
+  --color-background: #050607;
+  --color-surface: #0d0f10;
+  --color-surface-elevated: #121416;
+
+  --color-border: #24272a;
+  --color-border-subtle: #191b1d;
+
+  --color-foreground: #f5f5f5;
+  --color-muted: #a1a1a1;
+  --color-muted-foreground: #66686b;
+
+  /* Brand */
+  --color-primary: #ff4058;
+  --color-primary-hover: #ff5870;
+  --color-primary-dark: #b91f38;
+  --color-primary-soft: #ff7184;
+
+  /* ================================
+     Font
+     ================================ */
+
+  --font-sans: "Inter", sans-serif;
+
+  /* ================================
+     Border Radius
+     ================================ */
+
+  --radius-card: 1rem;
+  --radius-button: 0.625rem;
+}
+
+
+/* ================================
+   Base
+   ================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ================================
+   Selection
+   ================================ */
+
+::selection {
+  background: rgba(255, 64, 88, 0.3);
+  color: #ffffff;
+}
+
+
+/* ================================
+   Scrollbar
+   ================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #24272a;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3d40;
+}
