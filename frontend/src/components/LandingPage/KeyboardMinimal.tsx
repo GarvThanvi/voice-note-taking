@@ -1,6 +1,7 @@
 import { CircleCheck } from "lucide-react";
 import Container from "../ui/Container";
 import Keyboard from "../ui/Keyboard";
+import Reveal from "../ui/Reveal";
 
 const KeyboardMinimal = () => {
   const features = [
@@ -15,7 +16,7 @@ const KeyboardMinimal = () => {
       <Container>
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           {/* Left Content */}
-          <div>
+          <Reveal>
             <div className="mb-8">
               <h2 className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
                 Minimal by design.
@@ -42,13 +43,15 @@ const KeyboardMinimal = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </Reveal>
 
           {/* Right Keyboard */}
-          <div className="relative">
+          <Reveal delay={0.15} className="relative">
             {/* Glow behind keyboard */}
             <div
+              aria-hidden
               className="
+                animate-glow-pulse
                 absolute
                 left-1/2
                 top-1/2
@@ -65,7 +68,7 @@ const KeyboardMinimal = () => {
             <div className="relative">
               <Keyboard />
             </div>
-          </div>
+          </Reveal>
         </div>
       </Container>
     </section>

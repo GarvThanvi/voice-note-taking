@@ -1,10 +1,14 @@
 import Container from "./ui/Container";
+import Reveal from "./ui/Reveal";
 
 const Footer = () => {
   return (
     <footer className="w-full border-t border-border-subtle bg-background">
       <Container>
-        <div className="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
+        <Reveal
+          margin="0px"
+          className="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row"
+        >
           {/* Copyright */}
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} NoteFlow. All rights reserved.
@@ -36,7 +40,7 @@ const Footer = () => {
               Terms of Service
             </a>
           </div>
-        </div>
+        </Reveal>
       </Container>
     </footer>
   );

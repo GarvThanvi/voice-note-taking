@@ -39,10 +39,10 @@ const Key = ({
         ${
           highlighted
             ? `
+              animate-key-breathe
               border-primary
               bg-primary/10
               text-primary
-              shadow-[0_0_10px_rgba(255,64,88,0.35)]
             `
             : `
               border-[#24272a]
