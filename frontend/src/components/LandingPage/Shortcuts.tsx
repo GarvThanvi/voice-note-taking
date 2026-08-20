@@ -55,7 +55,7 @@ const shortcutVariants = {
 
 const Shortcuts = () => {
   return (
-    <section className="w-full border-t border-border-subtle bg-background py-12">
+    <section id="shortcuts-section" className="w-full border-t border-border-subtle bg-background py-12">
       <Container>
         <div className="flex flex-col items-center">
           {/* Heading */}

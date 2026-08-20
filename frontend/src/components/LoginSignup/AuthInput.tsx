@@ -36,7 +36,7 @@ const AuthInput = ({
     <div className="flex flex-col gap-2">
       <label
         htmlFor={id}
-        className="text-sm font-medium text-foreground"
+        className="text-sm font-light text-foreground"
       >
         {label}
       </label>

@@ -45,7 +45,7 @@ const cardVariants = {
 
 const Features = () => {
   return (
-    <section id="features" className="relative w-full border-t border-border-subtle bg-background py-12">
+    <section id="features-section" className="relative w-full border-t border-border-subtle bg-background py-12">
       {/* Ambient glow behind heading */}
       <div
         aria-hidden

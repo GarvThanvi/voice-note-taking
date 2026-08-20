@@ -1,8 +1,4 @@
-import {
-  Lock,
-  Mail,
-  User,
-} from "lucide-react";
+import { Lock, Mail, User } from "lucide-react";
 import { useState } from "react";
 
 import Button from "../ui/Button";
@@ -17,17 +13,12 @@ interface AuthFormProps {
   onModeChange: (mode: AuthMode) => void;
 }
 
-const AuthForm = ({
-  mode,
-  onModeChange,
-}: AuthFormProps) => {
+const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   const isLogin = mode === "login";
 
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -36,9 +27,7 @@ const AuthForm = ({
     confirmPassword: "",
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
 
     setFormData((prev) => ({
@@ -47,16 +36,11 @@ const AuthForm = ({
     }));
   };
 
-  const handleSubmit = (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!isLogin) {
-      if (
-        formData.password !==
-        formData.confirmPassword
-      ) {
+      if (formData.password !== formData.confirmPassword) {
         console.log("Passwords do not match");
         return;
       }
@@ -73,22 +57,16 @@ const AuthForm = ({
   };
 
   const switchMode = () => {
-    onModeChange(
-      isLogin ? "signup" : "login"
-    );
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    onModeChange(isLogin ? "signup" : "login");
   };
 
   return (
-    <div
-      key={mode}
-      className="animate-auth-enter"
-    >
+    <div key={mode} className="animate-auth-enter">
       {/* Header */}
       <div className="mb-7 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          {isLogin
-            ? "Welcome back"
-            : "Create your account"}
+        <h1 className="text-2xl font-normal tracking-tight text-foreground">
+          {isLogin ? "Welcome back" : "Create your account"}
         </h1>
 
         <p className="mt-2 text-sm text-muted">
@@ -98,10 +76,7 @@ const AuthForm = ({
         </p>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-5"
-      >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {/* Name */}
         {!isLogin && (
           <AuthInput
@@ -130,20 +105,12 @@ const AuthForm = ({
           id="password"
           label="Password"
           type="password"
-          placeholder={
-            isLogin
-              ? "Enter your password"
-              : "Create a password"
-          }
+          placeholder={isLogin ? "Enter your password" : "Create a password"}
           icon={<Lock size={18} />}
           value={formData.password}
           onChange={handleChange}
           showPassword={showPassword}
-          onTogglePassword={() =>
-            setShowPassword(
-              (prev) => !prev
-            )
-          }
+          onTogglePassword={() => setShowPassword((prev) => !prev)}
         />
 
         {/* Confirm password */}
@@ -157,11 +124,7 @@ const AuthForm = ({
             value={formData.confirmPassword}
             onChange={handleChange}
             showPassword={showConfirmPassword}
-            onTogglePassword={() =>
-              setShowConfirmPassword(
-                (prev) => !prev
-              )
-            }
+            onTogglePassword={() => setShowConfirmPassword((prev) => !prev)}
           />
         )}
 
@@ -183,10 +146,7 @@ const AuthForm = ({
         )}
 
         {/* Submit */}
-        <Button
-          type="submit"
-          className="h-12 w-full"
-        >
+        <Button type="submit" className="h-12 w-full">
           {isLogin ? "Log in" : "Sign up"}
         </Button>
 
@@ -198,10 +158,7 @@ const AuthForm = ({
 
         {/* Switch */}
         <p className="text-center text-sm text-muted">
-          {isLogin
-            ? "Don't have an account?"
-            : "Already have an account?"}{" "}
-
+          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
             type="button"
             onClick={switchMode}
@@ -212,9 +169,7 @@ const AuthForm = ({
               hover:text-primary-hover
             "
           >
-            {isLogin
-              ? "Sign up"
-              : "Log in"}
+            {isLogin ? "Sign up" : "Log in"}
           </button>
         </p>
       </form>

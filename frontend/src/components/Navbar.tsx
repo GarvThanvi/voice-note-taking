@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
+import { HashLink, NavHashLink } from "react-router-hash-link";
 import { AudioWaveform } from "lucide-react";
 import { motion } from "framer-motion";
 import Container from "./ui/Container";
@@ -6,12 +7,18 @@ import Container from "./ui/Container";
 const EASE: [number, number, number, number] = [0.21, 0.47, 0.32, 0.98];
 
 const Navbar = () => {
+  const location = useLocation();
   const navLinks = [
-    { name: "Features", path: "/features" },
-    { name: "Voice", path: "/voice" },
-    { name: "Shortcuts", path: "/shortcuts" },
-    { name: "About", path: "/about" },
-    { name: "Download", path: "/downloads" },
+    {
+      name: "Features",
+      path: "/#features-section",
+      matchingHash: "#features-section",
+    },
+    {
+      name: "Shortcuts",
+      path: "/#shortcuts-section",
+      matchingHash: "#shortcuts-section",
+    },
   ];
 
   return (
@@ -25,11 +32,7 @@ const Navbar = () => {
         <div className="relative flex h-16 items-center justify-between rounded-xl border border-border bg-surface/70 px-6 shadow-[0_8px_30px_rgba(0,0,0,0.4)] backdrop-blur-xl">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-2.5">
-            <AudioWaveform
-              size={21}
-              strokeWidth={2}
-              className="text-primary"
-            />
+            <AudioWaveform size={21} strokeWidth={2} className="text-primary" />
 
             <span className="text-base font-semibold text-foreground">
               NoteFlow
@@ -39,19 +42,17 @@ const Navbar = () => {
           {/* Navigation */}
           <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-9">
             {navLinks.map((link) => (
-              <NavLink
+              <HashLink
                 key={link.path}
                 to={link.path}
-                className={({ isActive }) =>
-                  `text-sm transition-colors duration-200 ${
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`
-                }
+                className={`text-sm transition-colors duration-200 ${
+                  location.hash === link.matchingHash
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
                 {link.name}
-              </NavLink>
+              </HashLink>
             ))}
           </div>
 

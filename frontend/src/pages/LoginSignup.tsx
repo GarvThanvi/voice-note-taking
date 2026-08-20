@@ -14,6 +14,7 @@ const LoginSignup = () => {
         min-h-[calc(100vh-140px)]
         overflow-hidden
         bg-background
+        -top-7
       "
     >
       {/* Top-right glow */}
@@ -70,7 +71,7 @@ const LoginSignup = () => {
 
       <Container>
         <div className="flex min-h-[calc(100vh-140px)] items-center justify-center py-12 sm:py-16">
-          <div className="w-full max-w-[620px]">
+          <div className="w-full max-w-[620px] flex items-center justify-center">
             {/* Auth card */}
             <div
               className="
@@ -85,6 +86,7 @@ const LoginSignup = () => {
                 shadow-[0_20px_70px_rgba(0,0,0,0.35)]
                 sm:px-12
                 sm:py-10
+                w-[480px]
               "
             >
               {/* Subtle card glow */}
@@ -105,7 +107,7 @@ const LoginSignup = () => {
 
               <div className="relative">
                 {/* Logo */}
-                <div className="mb-9 flex justify-center">
+                {/* <div className="mb-8 flex justify-center">
                   <div className="flex items-center gap-2">
                     <AudioWaveform
                       size={30}
@@ -117,7 +119,7 @@ const LoginSignup = () => {
                       NoteFlow
                     </span>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Form */}
                 <AuthForm mode={mode} onModeChange={setMode} />
