@@ -4,13 +4,16 @@ import "./index.css";
 import App from "./App.tsx";
 import { BrowserRouter } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
+import { AuthProvider } from "./context/AuthContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <MotionConfig reducedMotion="user">
-        <App />
-      </MotionConfig>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <MotionConfig reducedMotion="user">
+          <App />
+        </MotionConfig>
+      </BrowserRouter>
+    </AuthProvider>
   </StrictMode>,
 );

@@ -1,8 +1,6 @@
 import { useState } from "react";
-
 import Container from "../components/ui/Container";
 import AuthForm, { type AuthMode } from "../components/LoginSignup/AuthForm";
-import { AudioWaveform } from "lucide-react";
 
 const LoginSignup = () => {
   const [mode, setMode] = useState<AuthMode>("login");

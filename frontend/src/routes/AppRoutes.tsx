@@ -3,6 +3,7 @@ import LandingPage from "../pages/LandingPage";
 import { Routes, Route } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import LoginSignup from "../pages/LoginSignup";
+import Note from "../pages/Note";
 
 const AppRoutes = () => {
   return (
@@ -11,7 +12,7 @@ const AppRoutes = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/signin" element={<LoginSignup/>}></Route>
       </Route>
-
+      <Route path="/note" element={<Note/>}></Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

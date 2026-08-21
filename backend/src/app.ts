@@ -16,11 +16,13 @@ import {
 } from "./schemas/note.js";
 import { authMiddleware } from "./middlewares/auth.middleware.js";
 import { set } from "zod";
+import cors from "cors";
 
 const PORT = process.env.PORT;
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 
 app.post("/api/auth/signup", async (req, res) => {
   try {

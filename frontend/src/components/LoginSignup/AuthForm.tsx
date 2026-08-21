@@ -5,6 +5,9 @@ import Button from "../ui/Button";
 import AuthInput from "./AuthInput";
 import AuthDivider from "./AuthDivider";
 import GoogleButton from "./GoogleButton";
+import { loginUser } from "../../api/authApi";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export type AuthMode = "login" | "signup";
 
@@ -15,10 +18,12 @@ interface AuthFormProps {
 
 const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   const isLogin = mode === "login";
-
+  const { setUser } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -36,12 +41,13 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    setLoading(true);
     e.preventDefault();
 
     if (!isLogin) {
       if (formData.password !== formData.confirmPassword) {
-        console.log("Passwords do not match");
+        setErrorMessage("Passwords do not match");
         return;
       }
 
@@ -50,10 +56,22 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
       return;
     }
 
-    console.log("Login:", {
-      email: formData.email,
-      password: formData.password,
-    });
+    try {
+      let email: string = formData.email
+      let password: string = formData.password
+      const data = await loginUser({email, password});
+      console.log(data);
+      if(data.success){
+        setUser(data.user);
+        navigate("/note");
+      }else{
+        setErrorMessage(data.message || "Failed to login. Try again")
+      }
+    } catch (error) {
+      console.error("Error while signing in ", error);
+    }finally{
+      setLoading(false);
+    }
   };
 
   const switchMode = () => {
