@@ -5,7 +5,18 @@ interface LoginData {
   password: string;
 }
 
+interface SignupData {
+  username: string;
+  email: string;
+  password: string;
+}
+
 export const loginUser = async (data: LoginData) => {
   const response = await api.post("/auth/signin", data);
   return response.data;
 };
+
+export const signupUser = async (data: SignupData) => {
+  const response = await api.post("/auth/signup", data);
+  return response.data;
+}

@@ -1,13 +1,15 @@
-import { Lock, Mail, User } from "lucide-react";
+import { Loader2, Lock, Mail, User } from "lucide-react";
 import { useState } from "react";
 
 import Button from "../ui/Button";
 import AuthInput from "./AuthInput";
 import AuthDivider from "./AuthDivider";
 import GoogleButton from "./GoogleButton";
-import { loginUser } from "../../api/authApi";
+import { loginUser, signupUser } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { p } from "framer-motion/client";
+import axios from "axios";
 
 export type AuthMode = "login" | "signup";
 
@@ -43,33 +45,74 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     setLoading(true);
+    setErrorMessage("");
     e.preventDefault();
 
     if (!isLogin) {
       if (formData.password !== formData.confirmPassword) {
         setErrorMessage("Passwords do not match");
+        setLoading(false);
         return;
       }
 
-      console.log("Signup:", formData);
+      try {
+        let email: string = formData.email;
+        let password: string = formData.password;
+        let username: string = formData.name;
+        if (!email || !password || !username) {
+          setErrorMessage("Form fields cannot be empty");
+          return;
+        }
+
+        const data = await signupUser({ email, password, username });
+        if (data.success) {
+          setUser(data.user);
+          navigate("/note");
+        } else {
+          setErrorMessage(data.message || "Failed to login. Try again");
+        }
+      } catch (error) {
+        console.error("Error while signing in ", error);
+        if (axios.isAxiosError(error)) {
+          setErrorMessage(
+            error.response?.data?.message || "Failed to login. Try again",
+          );
+        } else {
+          setErrorMessage("Something went wrong. Please try again.");
+        }
+      } finally {
+        setLoading(false);
+      }
 
       return;
     }
 
     try {
-      let email: string = formData.email
-      let password: string = formData.password
-      const data = await loginUser({email, password});
-      console.log(data);
-      if(data.success){
+      let email: string = formData.email;
+      let password: string = formData.password;
+
+      if (!email || !password) {
+        setErrorMessage("Form fields cannot be empty");
+        return;
+      }
+
+      const data = await loginUser({ email, password });
+      if (data.success) {
         setUser(data.user);
         navigate("/note");
-      }else{
-        setErrorMessage(data.message || "Failed to login. Try again")
+      } else {
+        setErrorMessage(data.message || "Failed to login. Try again");
       }
     } catch (error) {
       console.error("Error while signing in ", error);
-    }finally{
+      if (axios.isAxiosError(error)) {
+        setErrorMessage(
+          error.response?.data?.message || "Failed to login. Try again",
+        );
+      } else {
+        setErrorMessage("Something went wrong. Please try again.");
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -163,9 +206,19 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           </div>
         )}
 
+        {errorMessage && <p className="text-sm text-muted">{errorMessage}</p>}
+
         {/* Submit */}
         <Button type="submit" className="h-12 w-full">
-          {isLogin ? "Log in" : "Sign up"}
+          {!loading ? (
+            isLogin ? (
+              "Log in"
+            ) : (
+              "Sign up"
+            )
+          ) : (
+            <Loader2 className="animate-spin" />
+          )}
         </Button>
 
         {/* Divider */}

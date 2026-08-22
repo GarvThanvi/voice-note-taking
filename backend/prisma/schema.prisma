@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -12,44 +7,42 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  username  String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  notes     Note[]
+}
+
+model Note {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  type       NoteType @default(PARAGRAPH)
+  content    String
+  archived   Boolean  @default(false)
+  bookmarked Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  title      String?
+  user       User     @relation(fields: [userId], references: [id])
+  todos      Todo[]
+}
+
+model Todo {
+  id        Int      @id @default(autoincrement())
+  noteId    Int
+  text      String
+  done      Boolean  @default(false)
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  note      Note     @relation(fields: [noteId], references: [id])
+}
+
 enum NoteType {
   CHECKBOX
   PARAGRAPH
 }
-
-model User {
-  id Int @id @default(autoincrement())
-  email String @unique
-  username String
-  password String
-  notes Note[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt 
-}
-
-model Note {
-  id Int @id @default(autoincrement())
-  userId Int
-  user User @relation(fields: [userId], references: [id])
-  title String?
-  type NoteType @default(PARAGRAPH)
-  content String
-  archived Boolean @default(false)
-  bookmarked Boolean @default(false)
-  todos Todo[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Todo {
-  id Int @id @default(autoincrement())
-  noteId Int
-  note Note @relation(fields: [noteId], references: [id])
-  text String
-  done Boolean @default(false)
-  order Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-

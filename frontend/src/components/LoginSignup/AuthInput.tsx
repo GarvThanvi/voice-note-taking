@@ -74,6 +74,8 @@ const AuthInput = ({
             text-foreground
             outline-none
             placeholder:text-muted-foreground
+            autofill:bg-transparent
+            autofill:text-foreground
           "
         />
 
