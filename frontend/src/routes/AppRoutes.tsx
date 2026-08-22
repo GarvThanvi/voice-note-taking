@@ -4,18 +4,23 @@ import { Routes, Route } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import LoginSignup from "../pages/LoginSignup";
 import Note from "../pages/Note";
+import ProtectedRoutes from "./ProtectedRoutes";
+import GuestRoutes from "./GuestRoutes";
 
 const AppRoutes = () => {
   return (
     <Routes>
       <Route element={<AppLayout />}>
+        <Route element={<GuestRoutes />}></Route>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/signin" element={<LoginSignup/>}></Route>
+        <Route path="/signin" element={<LoginSignup />}></Route>
       </Route>
-      <Route path="/note" element={<Note/>}></Route>
+      <Route element={<ProtectedRoutes />}>
+        <Route path="/note" element={<Note />}></Route>
+      </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
-  )
-}
+  );
+};
 
-export default AppRoutes
+export default AppRoutes;

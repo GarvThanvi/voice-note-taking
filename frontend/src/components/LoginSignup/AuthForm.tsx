@@ -7,7 +7,7 @@ import AuthDivider from "./AuthDivider";
 import GoogleButton from "./GoogleButton";
 import { loginUser, signupUser } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { p } from "framer-motion/client";
 import axios from "axios";
 
@@ -22,6 +22,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   const isLogin = mode === "login";
   const { setUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -99,7 +100,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
       const data = await loginUser({ email, password });
       if (data.success) {
         setUser(data.user);
-        navigate("/note");
+        navigate(location.state?.from?.pathname || "/note", { replace: true });
       } else {
         setErrorMessage(data.message || "Failed to login. Try again");
       }
