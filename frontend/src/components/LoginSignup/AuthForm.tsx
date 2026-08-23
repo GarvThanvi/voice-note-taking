@@ -8,7 +8,6 @@ import GoogleButton from "./GoogleButton";
 import { loginUser, signupUser } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
-import { p } from "framer-motion/client";
 import axios from "axios";
 
 export type AuthMode = "login" | "signup";
@@ -68,6 +67,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         const data = await signupUser({ email, password, username });
         if (data.success) {
           setUser(data.user);
+          localStorage.setItem("token", data.token);
           navigate("/note");
         } else {
           setErrorMessage(data.message || "Failed to login. Try again");
@@ -100,6 +100,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
       const data = await loginUser({ email, password });
       if (data.success) {
         setUser(data.user);
+        localStorage.setItem("token", data.token);
         navigate(location.state?.from?.pathname || "/note", { replace: true });
       } else {
         setErrorMessage(data.message || "Failed to login. Try again");

@@ -135,6 +135,31 @@ declare global {
   }
 }
 
+app.get("/api/auth/me", authMiddleware, async (req, res) => {
+  try {
+    const userId: number = req.userId!;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, username: true, email: true },
+    });
+
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found" });
+    }
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("Error while fetching the user", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
 app.get("/api/note", authMiddleware, async (req, res) => {
   try {
     const userId: number = req.userId!;

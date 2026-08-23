@@ -10,10 +10,11 @@ import GuestRoutes from "./GuestRoutes";
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
-        <Route element={<GuestRoutes />}></Route>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/signin" element={<LoginSignup />}></Route>
+      <Route element={<GuestRoutes />}>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signin" element={<LoginSignup />}></Route>
+        </Route>
       </Route>
       <Route element={<ProtectedRoutes />}>
         <Route path="/note" element={<Note />}></Route>

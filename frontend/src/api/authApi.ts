@@ -19,4 +19,11 @@ export const loginUser = async (data: LoginData) => {
 export const signupUser = async (data: SignupData) => {
   const response = await api.post("/auth/signup", data);
   return response.data;
-}
+};
+
+export const getCurrentUser = async (token: string) => {
+  const response = await api.get("/auth/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
