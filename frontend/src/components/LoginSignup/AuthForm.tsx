@@ -5,7 +5,7 @@ import Button from "../ui/Button";
 import AuthInput from "./AuthInput";
 import AuthDivider from "./AuthDivider";
 import GoogleButton from "./GoogleButton";
-import { loginUser, signupUser } from "../../api/authApi";
+import { googleRedirect, loginUser, signupUser } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -26,7 +26,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -116,6 +116,26 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setErrorMessage("");
+
+    try {
+      await googleRedirect();
+    } catch (error) {
+      console.error("Error while signing in ", error);
+      if (axios.isAxiosError(error)) {
+        setErrorMessage(
+          error.response?.data?.message || "Failed to login. Try again",
+        );
+      } else {
+        setErrorMessage("Something went wrong. Please try again.");
+      }
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -227,7 +247,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         <AuthDivider />
 
         {/* Google */}
-        <GoogleButton />
+        <GoogleButton loading={googleLoading} onClick={handleGoogleSignIn} />
 
         {/* Switch */}
         <p className="text-center text-sm text-muted">

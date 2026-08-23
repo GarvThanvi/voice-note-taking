@@ -17,6 +17,8 @@ import {
 import { authMiddleware } from "./middlewares/auth.middleware.js";
 import { set } from "zod";
 import cors from "cors";
+import { googleClient } from "./config/google.js";
+import { google } from "googleapis";
 
 const PORT = process.env.PORT;
 const app = express();
@@ -487,6 +489,45 @@ app.put("/api/note/todo/complete/:noteId", authMiddleware, async (req, res) => {
       message: "Internal server error",
     });
   }
+});
+
+//google auth routes
+
+const googleScopes = ["openid", "profile", "email"];
+
+app.get("/api/auth/google", (req, res) => {
+  const url = googleClient.generateAuthUrl({
+    access_type: "offline",
+    scope: googleScopes,
+    prompt: "select_account",
+  });
+
+  res.redirect(url);
+});
+
+app.get("/google/callback", async (req, res) => {
+  try {
+    const code: string = req.query.code as string;
+
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Authorization code missing",
+      });
+
+      const { tokens } = await googleClient.getToken(code);
+
+      googleClient.setCredentials(tokens);
+
+      const oauth2 = google.oauth2({
+        auth: googleClient,
+        version: "v2",
+      });
+
+      const { data } = await oauth2.userinfo.get();
+      console.log(data);
+    }
+  } catch (error) {}
 });
 
 app.listen(PORT, () => {

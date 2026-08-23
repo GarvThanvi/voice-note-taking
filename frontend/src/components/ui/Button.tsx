@@ -6,6 +6,7 @@ interface ButtonProps {
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
   variant?: "primary" | "secondary";
+  onClick?: () => void;
 }
 
 const Button = ({
@@ -14,6 +15,7 @@ const Button = ({
   type = "button",
   disabled = false,
   variant = "primary",
+  onClick
 }: ButtonProps) => {
   const baseStyles = `
     inline-flex
@@ -59,6 +61,7 @@ const Button = ({
       type={type}
       disabled={disabled}
       className={`${baseStyles} ${variants[variant]} ${className}`}
+      onClick={onClick}
     >
       {children}
     </button>

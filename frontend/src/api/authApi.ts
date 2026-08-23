@@ -27,3 +27,8 @@ export const getCurrentUser = async (token: string) => {
   });
   return response.data;
 };
+
+export const googleRedirect = async () => {
+  const response = await api.get("/auth/google");
+  return response.data;
+};

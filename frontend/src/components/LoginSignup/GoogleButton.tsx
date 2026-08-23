@@ -1,17 +1,28 @@
+import { Loader2 } from "lucide-react";
 import Button from "../ui/Button";
 
-const GoogleButton = () => {
+interface GoogleButtonProps {
+  onClick: () => void;
+  loading: boolean;
+}
+
+const GoogleButton = ({ onClick, loading }: GoogleButtonProps) => {
   return (
     <Button
       type="button"
       variant="secondary"
       className="h-12 w-full"
+      onClick={onClick}
     >
-      <span className="text-base font-semibold">
-        G
-      </span>
+      {loading ? (
+        <Loader2 className="animate-spin" />
+      ) : (
+        <>
+          <span className="text-base font-semibold">G</span>
 
-      <span>Continue with Google</span>
+          <span>Continue with Google</span>
+        </>
+      )}
     </Button>
   );
 };
