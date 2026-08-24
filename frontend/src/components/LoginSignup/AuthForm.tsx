@@ -26,7 +26,6 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -120,23 +119,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   };
 
   const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
-    setErrorMessage("");
-
-    try {
-      await googleRedirect();
-    } catch (error) {
-      console.error("Error while signing in ", error);
-      if (axios.isAxiosError(error)) {
-        setErrorMessage(
-          error.response?.data?.message || "Failed to login. Try again",
-        );
-      } else {
-        setErrorMessage("Something went wrong. Please try again.");
-      }
-    } finally {
-      setGoogleLoading(false);
-    }
+    window.location.href = `${import.meta.env.VITE_APP_BASE_URL}/auth/google`
   };
 
   const switchMode = () => {
@@ -247,7 +230,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         <AuthDivider />
 
         {/* Google */}
-        <GoogleButton loading={googleLoading} onClick={handleGoogleSignIn} />
+        <GoogleButton onClick={handleGoogleSignIn} />
 
         {/* Switch */}
         <p className="text-center text-sm text-muted">

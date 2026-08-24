@@ -3,7 +3,7 @@ import Button from "../ui/Button";
 
 interface GoogleButtonProps {
   onClick: () => void;
-  loading: boolean;
+  loading?: boolean;
 }
 
 const GoogleButton = ({ onClick, loading }: GoogleButtonProps) => {

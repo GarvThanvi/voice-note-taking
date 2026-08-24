@@ -505,29 +505,36 @@ app.get("/api/auth/google", (req, res) => {
   res.redirect(url);
 });
 
-app.get("/google/callback", async (req, res) => {
+app.get("/api/auth/google/callback", async (req, res) => {
   try {
-    const code: string = req.query.code as string;
+    const { code } = req.query;
 
-    if (!code || typeof code !== "string") {
+    if (!code) {
       return res.status(400).json({
         success: false,
         message: "Authorization code missing",
       });
-
-      const { tokens } = await googleClient.getToken(code);
-
-      googleClient.setCredentials(tokens);
-
-      const oauth2 = google.oauth2({
-        auth: googleClient,
-        version: "v2",
-      });
-
-      const { data } = await oauth2.userinfo.get();
-      console.log(data);
     }
-  } catch (error) {}
+    const { tokens } = await googleClient.getToken(code as string);
+
+    googleClient.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({
+      auth: googleClient,
+      version: "v2",
+    });
+
+    const { data } = await oauth2.userinfo.get();
+    console.log(data);
+
+    return res.redirect(`${process.env.FRONTEND_URL}/note`);
+  } catch (error) {
+    console.error("Error in google callback route", error);
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/signin?error=google_auth_failed`,
+    );
+  }
 });
 
 app.listen(PORT, () => {
