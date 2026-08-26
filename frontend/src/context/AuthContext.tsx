@@ -8,9 +8,10 @@ import {
 import { getCurrentUser } from "../api/authApi";
 
 interface User {
-  id: string;
+  id: number;
   username: string;
   email: string;
+  profilePicture?: string;
 }
 
 interface AuthContextType {

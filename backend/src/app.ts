@@ -104,7 +104,7 @@ app.post("/api/auth/signin", async (req, res) => {
       });
     }
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
+    const passwordMatch = await bcrypt.compare(password, user.password!);
     if (!passwordMatch) {
       return res.status(401).json({
         success: false,
@@ -119,7 +119,12 @@ app.post("/api/auth/signin", async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { id: user.id, username: user.username, email: user.email },
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profilePicture,
+      },
     });
   } catch (error) {
     console.error("Error occured while signing in user ", error);
@@ -143,7 +148,7 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, username: true, email: true },
+      select: { id: true, username: true, email: true, profilePicture: true },
     });
 
     if (!user) {
@@ -152,7 +157,10 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    return res.status(200).json({ success: true, user });
+    return res.status(200).json({
+      success: true,
+      user,
+    });
   } catch (error) {
     console.error("Error while fetching the user", error);
     return res.status(500).json({
@@ -527,7 +535,35 @@ app.get("/api/auth/google/callback", async (req, res) => {
     const { data } = await oauth2.userinfo.get();
     console.log(data);
 
-    return res.redirect(`${process.env.FRONTEND_URL}/note`);
+    const user = await prisma.user.findUnique({
+      where: { email: data.email! },
+    });
+    if (!user) {
+      const newUser = await prisma.$transaction(async (tx) => {
+        return tx.user.create({
+          data: {
+            username: data.name!,
+            email: data.email!,
+            profilePicture: data.picture!,
+            googleId: data.id!,
+          },
+        });
+      });
+
+      const token = jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET!, {
+        expiresIn: "7d",
+      });
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth/google-success?token=${token}`,
+      );
+    }
+
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+      expiresIn: "7d",
+    });
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/auth/google-success?token=${token}`,
+    );
   } catch (error) {
     console.error("Error in google callback route", error);
 
