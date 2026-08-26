@@ -6,6 +6,7 @@ import LoginSignup from "../pages/LoginSignup";
 import Note from "../pages/Note";
 import ProtectedRoutes from "./ProtectedRoutes";
 import GuestRoutes from "./GuestRoutes";
+import GoogleSuccess from "../pages/GoogleSuccess"
 
 const AppRoutes = () => {
   return (
@@ -14,6 +15,7 @@ const AppRoutes = () => {
         <Route element={<AppLayout />}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/signin" element={<LoginSignup />}></Route>
+          <Route path="/auth/google-success" element={<GoogleSuccess/>}></Route>
         </Route>
       </Route>
       <Route element={<ProtectedRoutes />}>

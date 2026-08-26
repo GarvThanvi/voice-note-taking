@@ -533,7 +533,6 @@ app.get("/api/auth/google/callback", async (req, res) => {
     });
 
     const { data } = await oauth2.userinfo.get();
-    console.log(data);
 
     const user = await prisma.user.findUnique({
       where: { email: data.email! },
@@ -561,6 +560,19 @@ app.get("/api/auth/google/callback", async (req, res) => {
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
       expiresIn: "7d",
     });
+
+    let updatedUser = user;
+
+    if (!user.profilePicture || !user.googleId) {
+      updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          ...(user.profilePicture ? {} : { profilePicture: data.picture! }),
+          ...(user.googleId ? {} : { googleId: data.id! }),
+        },
+      });
+    }
+
     return res.redirect(
       `${process.env.FRONTEND_URL}/auth/google-success?token=${token}`,
     );
