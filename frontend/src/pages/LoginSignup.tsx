@@ -3,7 +3,7 @@ import Container from "../components/ui/Container";
 import AuthForm, { type AuthMode } from "../components/LoginSignup/AuthForm";
 
 const LoginSignup = () => {
-  const [mode, setMode] = useState<AuthMode>("login");
+const [mode, setMode] = useState<AuthMode>("login");
 
   return (
     <main

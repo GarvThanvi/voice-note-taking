@@ -1,5 +1,5 @@
 import { Loader2, Lock, Mail, User } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Button from "../ui/Button";
 import AuthInput from "./AuthInput";
@@ -7,7 +7,7 @@ import AuthDivider from "./AuthDivider";
 import GoogleButton from "./GoogleButton";
 import { googleRedirect, loginUser, signupUser } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 
 export type AuthMode = "login" | "signup";
@@ -32,6 +32,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
     password: "",
     confirmPassword: "",
   });
+  const [searchParams] = useSearchParams();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -126,6 +127,12 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     onModeChange(isLogin ? "signup" : "login");
   };
+
+  useEffect(() => {
+    if(searchParams.get("error")){
+      setErrorMessage("Google authentication failed. Please try again!")
+    }
+  }, [searchParams])
 
   return (
     <div key={mode} className="animate-auth-enter">

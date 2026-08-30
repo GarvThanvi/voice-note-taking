@@ -7,17 +7,13 @@ const GoogleSuccess = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("1");
     const token = searchParams.get("token");
-    console.log("1");
     if (!token) {
       navigate("/signin");
       return;
     }
-    console.log("3");
     localStorage.setItem("token", token);
     navigate("/note", { replace: true });
-    console.log("4");
   }, [searchParams, navigate]);
 
   return (

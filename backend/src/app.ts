@@ -103,6 +103,10 @@ app.post("/api/auth/signin", async (req, res) => {
         message: "Invalid email or password",
       });
     }
+    
+    if(user.googleId && !user.password){
+      return res.status(401).json({success: false, message: "This account was signed up with Google"})
+    }
 
     const passwordMatch = await bcrypt.compare(password, user.password!);
     if (!passwordMatch) {
