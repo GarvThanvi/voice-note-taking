@@ -107,6 +107,42 @@
   }
 }
 
+.light {
+  --color-background: #ffffff;
+  --color-surface: #f8f9fa;
+  --color-surface-elevated: #ffffff;
+
+  --color-border: #e2e5e9;
+  --color-border-subtle: #edf0f3;
+
+  --color-foreground: #1a1d21;
+  --color-muted: #5f6368;
+  --color-muted-foreground: #9aa0a6;
+
+  --color-primary: #ff4058;
+  --color-primary-hover: #ff5870;
+  --color-primary-dark: #b91f38;
+  --color-primary-soft: #ff7184;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.light input:-webkit-autofill,
+.light input:-webkit-autofill:hover,
+.light input:-webkit-autofill:focus,
+.light input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-background) inset !important;
+  box-shadow: 0 0 0 1000px var(--color-background) inset !important;
+  -webkit-text-fill-color: var(--color-foreground) !important;
+  caret-color: var(--color-foreground);
+}
+
 /* ================================
    Base
    ================================ */
@@ -152,14 +188,4 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #3a3d40;
-}
-
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--color-background) inset !important;
-  box-shadow: 0 0 0 1000px var(--color-background) inset !important;
-  -webkit-text-fill-color: var(--color-foreground) !important;
-  caret-color: var(--color-foreground);
 }

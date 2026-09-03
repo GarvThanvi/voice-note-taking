@@ -177,9 +177,15 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
 app.get("/api/note", authMiddleware, async (req, res) => {
   try {
     const userId: number = req.userId!;
+    const { bookmarked } = req.query;
+
+    const where: { userId: number; bookmarked?: boolean } = { userId };
+    if (bookmarked === "true") {
+      where.bookmarked = true;
+    }
 
     const notes = await prisma.note.findMany({
-      where: { userId },
+      where,
       include: { todos: true },
     });
 
@@ -329,6 +335,12 @@ app.delete("/api/note/:noteId", authMiddleware, async (req, res) => {
         message: "Note not found",
       });
     }
+
+    await prisma.todo.deleteMany({
+      where: {
+        noteId,
+      },
+    });
 
     await prisma.note.delete({
       where: {
