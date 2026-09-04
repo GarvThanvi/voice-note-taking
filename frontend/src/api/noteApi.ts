@@ -15,7 +15,7 @@ export interface Note {
   userId: number;
   title: string | null;
   type: "PARAGRAPH" | "CHECKBOX";
-  content: string;
+  content?: string;
   archived: boolean;
   bookmarked: boolean;
   createdAt: string;
@@ -38,10 +38,13 @@ interface UpdateNoteData {
   todos?: string[];
 }
 
-export const getNotes = async (bookmarked?: boolean): Promise<Note[]> => {
+export const getNotes = async (bookmarked?: boolean, search?: string): Promise<Note[]> => {
   const params = new URLSearchParams();
   if (bookmarked) {
     params.set("bookmarked", "true");
+  }
+  if (search) {
+    params.set("search", search);
   }
   const queryString = params.toString();
   const url = `/note${queryString ? `?${queryString}` : ""}`;

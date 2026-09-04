@@ -177,11 +177,18 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
 app.get("/api/note", authMiddleware, async (req, res) => {
   try {
     const userId: number = req.userId!;
-    const { bookmarked } = req.query;
+    const { bookmarked, search } = req.query;
 
-    const where: { userId: number; bookmarked?: boolean } = { userId };
+    const where: any = { userId };
     if (bookmarked === "true") {
       where.bookmarked = true;
+    }
+    if (typeof search === "string" && search.trim()) {
+      where.OR = [
+        { title: { contains: search.trim(), mode: "insensitive" } },
+        { content: { contains: search.trim(), mode: "insensitive" } },
+        { todos: { some: { text: { contains: search.trim(), mode: "insensitive" } } } },
+      ];
     }
 
     const notes = await prisma.note.findMany({

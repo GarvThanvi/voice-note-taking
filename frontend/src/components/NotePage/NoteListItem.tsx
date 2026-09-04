@@ -35,7 +35,7 @@ const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete }: NoteListIte
         <p className="text-sm text-muted mt-1 truncate">
           {note.type === "CHECKBOX" && note.todos
             ? note.todos.map((todo) => `${todo.done ? "✓" : "□"} ${todo.text}`).join(" ")
-            : note.content.replace(/\n/g, " ")}
+            : (note.content || "").replace(/\n/g, " ")}
         </p>
       </div>
 

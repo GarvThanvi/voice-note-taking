@@ -1,5 +1,5 @@
 import { Search, Moon, Sun, Grid2X2, List } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/NotePage/Sidebar";
 import NoteCard from "../components/NotePage/NoteCard";
 import NoteListItem from "../components/NotePage/NoteListItem";
@@ -15,10 +15,26 @@ const Note = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [activeFilter, setActiveFilter] = useState("all");
+
+  useEffect(() => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,7 +43,7 @@ const Note = () => {
         setLoading(true);
         setError(null);
         const isBookmarked = activeFilter === "bookmark";
-        const data = await getNotes(isBookmarked);
+        const data = await getNotes(isBookmarked, debouncedSearch || undefined);
         if (!cancelled) {
           setNotes(data);
         }
@@ -45,7 +61,7 @@ const Note = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeFilter, retryCount]);
+  }, [activeFilter, retryCount, debouncedSearch]);
 
   const handleToggleFavorite = async (noteId: number, bookmarked: boolean) => {
     try {
@@ -95,14 +111,6 @@ const Note = () => {
     setModalOpen(false);
   };
 
-  const filteredNotes = notes.filter((note) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
-
   const pageTitle = activeFilter === "bookmark" ? "Bookmark" : "All Notes";
 
   return (
@@ -145,10 +153,6 @@ const Note = () => {
                   transition-all
                 "
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] text-muted-foreground">
-                <span className="border border-border rounded px-1.5 py-0.5">⌘</span>
-                <span>K</span>
-              </div>
             </div>
 
             <div className="ml-auto flex items-center gap-5">
@@ -167,7 +171,7 @@ const Note = () => {
                 {pageTitle}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {filteredNotes.length} notes
+                {notes.length} notes
               </p>
             </div>
 
@@ -211,13 +215,13 @@ const Note = () => {
                 Try again
               </button>
             </div>
-          ) : filteredNotes.length === 0 ? (
+          ) : notes.length === 0 ? (
             <div className="flex items-center justify-center py-20">
               <p className="text-sm text-muted-foreground">No notes found</p>
             </div>
           ) : view === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-              {filteredNotes.map((note) => (
+              {notes.map((note) => (
                 <NoteCard
                   key={note.id}
                   note={note}
@@ -229,7 +233,7 @@ const Note = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredNotes.map((note) => (
+              {notes.map((note) => (
                 <NoteListItem
                   key={note.id}
                   note={note}
