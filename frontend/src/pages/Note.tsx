@@ -1,11 +1,12 @@
 import { Search, Moon, Sun, Grid2X2, List } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/NotePage/Sidebar";
 import NoteCard from "../components/NotePage/NoteCard";
 import NoteListItem from "../components/NotePage/NoteListItem";
 import NoteModal from "../components/NotePage/NoteModal";
 import { getNotes, updateNote, deleteNote } from "../api/noteApi";
 import { useTheme } from "../context/ThemeContext";
+import { useDebounce } from "../hooks/useDebounce";
 import type { Note } from "../api/noteApi";
 
 const Note = () => {
@@ -15,26 +16,11 @@ const Note = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [retryCount, setRetryCount] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [activeFilter, setActiveFilter] = useState("all");
-
-  useEffect(() => {
-    if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current);
-    }
-    searchTimerRef.current = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 300);
-    return () => {
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-      }
-    };
-  }, [searchQuery]);
 
   useEffect(() => {
     let cancelled = false;

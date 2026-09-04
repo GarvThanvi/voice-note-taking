@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Trash2, CheckSquare, AlignLeft } from "lucide-react";
 import { createNote, updateNote, deleteNote, toggleTodoComplete } from "../../api/noteApi";
+import { useDebouncedCallback } from "../../hooks/useDebounce";
 import type { Note } from "../../api/noteApi";
 
 interface NoteModalProps {
@@ -23,50 +24,39 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => titleRef.current?.focus(), 100);
     }
-    return () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-    };
   }, [isOpen]);
 
-  const debouncedSave = (overrides: { title?: string; content?: string; noteType?: "PARAGRAPH" | "CHECKBOX"; todos?: { text: string; done: boolean; id?: number }[] }) => {
+  const debouncedSave = useDebouncedCallback(async (overrides: { title?: string; content?: string; noteType?: "PARAGRAPH" | "CHECKBOX"; todos?: { text: string; done: boolean; id?: number }[] }) => {
     if (!note) return;
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const t = overrides.title ?? title;
+      const c = overrides.content ?? content;
+      const nt = overrides.noteType ?? noteType;
+      const tl = overrides.todos ?? todos;
+
+      const payload =
+        nt === "CHECKBOX"
+          ? { title: t, type: nt, todos: tl.map((td) => td.text), content: "" }
+          : { title: t, type: nt, content: c, todos: [] };
+
+      const updated = await updateNote(note.id, payload);
+      onNoteUpdated(updated);
+    } catch {
+      // silent
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
-    saveTimerRef.current = setTimeout(async () => {
-      if (savingRef.current) return;
-      savingRef.current = true;
-      setSaving(true);
-      try {
-        const t = overrides.title ?? title;
-        const c = overrides.content ?? content;
-        const nt = overrides.noteType ?? noteType;
-        const tl = overrides.todos ?? todos;
-
-        const payload =
-          nt === "CHECKBOX"
-            ? { title: t, type: nt, todos: tl.map((td) => td.text), content: "" }
-            : { title: t, type: nt, content: c, todos: [] };
-
-        const updated = await updateNote(note.id, payload);
-        onNoteUpdated(updated);
-      } catch {
-        // silent
-      } finally {
-        savingRef.current = false;
-        setSaving(false);
-      }
-    }, 2000);
-  };
+  }, 2000);
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
