@@ -4,6 +4,7 @@ import Sidebar from "../components/NotePage/Sidebar";
 import NoteCard from "../components/NotePage/NoteCard";
 import NoteListItem from "../components/NotePage/NoteListItem";
 import NoteModal from "../components/NotePage/NoteModal";
+import VoiceControl from "../components/NotePage/VoiceControl";
 import { getNotes, updateNote, deleteNote } from "../api/noteApi";
 import { useTheme } from "../context/ThemeContext";
 import { useDebounce } from "../hooks/useDebounce";
@@ -242,6 +243,8 @@ const Note = () => {
         onNoteUpdated={handleNoteUpdated}
         onNoteDeleted={handleNoteDeleted}
       />
+
+      <VoiceControl onActionDone={() => setRetryCount((c) => c + 1)} />
     </div>
   );
 };

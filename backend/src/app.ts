@@ -19,6 +19,8 @@ import { set } from "zod";
 import cors from "cors";
 import { googleClient } from "./config/google.js";
 import { google } from "googleapis";
+import voiceRoutes from "./routes/voice.js";
+import voiceUndoRoutes from "./routes/voiceUndo.js";
 
 const PORT = process.env.PORT;
 const app = express();
@@ -607,6 +609,9 @@ app.get("/api/auth/google/callback", async (req, res) => {
     );
   }
 });
+
+app.use("/api/voice", voiceRoutes);
+app.use("/api/voice", voiceUndoRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server started at port ${PORT}`);
