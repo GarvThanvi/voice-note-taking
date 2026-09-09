@@ -13,11 +13,6 @@ const upload = multer({
   limits: { fileSize: 25 * 1024 * 1024 },
 });
 
-/**
- * POST /api/voice/command
- *
- * Full pipeline: audio → transcript → intent → resolution → execution → undo token.
- */
 router.post(
   "/command",
   authMiddleware,
@@ -33,7 +28,6 @@ router.post(
         });
       }
 
-      // 1. Transcribe audio → text
       const transcript = await transcribeAudio(req.file.buffer);
 
       if (!transcript.trim()) {
@@ -48,17 +42,14 @@ router.post(
         });
       }
 
-      // 2. Extract structured intent from transcript
       const intent = await extractIntent(transcript);
 
-      // 3. Resolve hints → real DB rows (notes/todos)
       const resolution = await resolveTarget(
         userId,
         intent.note_hint,
         intent.todo_hint
       );
 
-      // 4. Execute the action if resolution is confident
       const execution = await executeAction(userId, intent, resolution);
 
       return res.status(200).json({

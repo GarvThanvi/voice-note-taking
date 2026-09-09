@@ -1,4 +1,5 @@
 import api from "./axiosInstance";
+import type { Note } from "./noteApi";
 
 export type VoiceAction =
   | "create_note"
@@ -12,6 +13,8 @@ export interface VoiceIntent {
   action: VoiceAction;
   note_hint: string | null;
   todo_hint: string | null;
+  todo_items: string[] | null;
+  content_paragraph: string | null;
   note_type_hint: "CHECKBOX" | "PARAGRAPH" | null;
   updates: Record<string, string> | null;
   confidence: number;
@@ -40,6 +43,7 @@ export interface ExecutionResult {
   summary: string;
   undoToken?: string;
   candidates?: ResolvedTarget[];
+  note?: Note;
 }
 
 export interface VoiceCommandResponse {

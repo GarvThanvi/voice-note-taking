@@ -32,6 +32,19 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (note) {
+      setTitle(note.title || "");
+      setContent(note.type === "PARAGRAPH" ? (note.content || "") : "");
+      setNoteType(note.type || "PARAGRAPH");
+      setTodos(
+        note.type === "CHECKBOX"
+          ? (note.todos?.map((t) => ({ text: t.text, done: t.done, id: t.id })) || [])
+          : []
+      );
+    }
+  }, [note]);
+
   const debouncedSave = useDebouncedCallback(async (overrides: { title?: string; content?: string; noteType?: "PARAGRAPH" | "CHECKBOX"; todos?: { text: string; done: boolean; id?: number }[] }) => {
     if (!note) return;
     if (savingRef.current) return;

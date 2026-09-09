@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Mic, AudioWaveform, Loader2, CheckCircle2, AlertCircle, HelpCircle, Undo2 } from "lucide-react";
 import { sendVoiceCommand, undoVoiceAction, type VoiceIntent, type ExecutionResult } from "../../api/voiceApi";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import type { Note } from "../../api/noteApi";
 
 type Phase = "idle" | "listening" | "processing";
 
@@ -20,12 +17,8 @@ interface Toast {
 interface VoiceControlProps {
   onTranscript?: (transcript: string) => void;
   onIntent?: (intent: VoiceIntent) => void;
-  onActionDone?: () => void;
+  onActionDone?: (note?: Note) => void;
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 const ACTION_LABELS: Record<string, string> = {
   create_note: "Create note",
@@ -35,10 +28,6 @@ const ACTION_LABELS: Record<string, string> = {
   archive: "Archive",
   search: "Search",
 };
-
-// ---------------------------------------------------------------------------
-// VoiceControl
-// ---------------------------------------------------------------------------
 
 const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProps) => {
   const [phase, setPhase] = useState<Phase>("idle");
@@ -54,10 +43,6 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProp
     phaseRef.current = next;
     setPhase(next);
   }, []);
-
-  // -----------------------------------------------------------------------
-  // Recording lifecycle
-  // -----------------------------------------------------------------------
 
   const cleanupStream = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -132,7 +117,7 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProp
           });
           onTranscript?.(data.transcript);
           if (data.intent) onIntent?.(data.intent);
-          if (exec?.status === "done") onActionDone?.();
+          if (exec?.status === "done") onActionDone?.(exec.note);
         } else {
           setToast({ kind: "error", message: data.message || "Transcription returned no text." });
         }
@@ -190,10 +175,6 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProp
     }
   }, [sendAudio, setPhaseSync]);
 
-  // -----------------------------------------------------------------------
-  // Undo handler
-  // -----------------------------------------------------------------------
-
   const handleUndo = useCallback(async () => {
     if (!toast?.undoToken || undoing) return;
     setUndoing(true);
@@ -207,10 +188,6 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProp
       setUndoing(false);
     }
   }, [toast?.undoToken, undoing, onActionDone]);
-
-  // -----------------------------------------------------------------------
-  // Global keybind
-  // -----------------------------------------------------------------------
 
   useEffect(() => {
     const isTypingTarget = (e: KeyboardEvent) => {
@@ -250,23 +227,14 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProp
     };
   }, [startRecording, finishRecording]);
 
-  // -----------------------------------------------------------------------
-  // Toast auto-dismiss
-  // -----------------------------------------------------------------------
-
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(null), 8000);
     return () => clearTimeout(id);
   }, [toast]);
 
-  // -----------------------------------------------------------------------
-  // Render
-  // -----------------------------------------------------------------------
-
   return (
     <>
-      {/* ---------- Listening / Processing pill ---------- */}
       {phase !== "idle" && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]">
           <div className="flex items-center gap-3 rounded-full border border-primary/30 bg-surface px-5 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
@@ -289,7 +257,6 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProp
         </div>
       )}
 
-      {/* ---------- Result toast ---------- */}
       {toast && phase === "idle" && (
         <div className="fixed top-20 right-6 z-[100] w-[380px] animate-in slide-in-from-right">
           <div
@@ -367,7 +334,6 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProp
         </div>
       )}
 
-      {/* ---------- Mic button ---------- */}
       {phase === "idle" && (
         <div className="fixed bottom-8 right-8 z-[100]">
           <button

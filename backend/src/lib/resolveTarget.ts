@@ -1,9 +1,5 @@
 import { prisma } from "./prisma.js";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface ResolvedTarget {
   noteId: number;
   title: string | null;
@@ -19,19 +15,9 @@ export type ResolutionResult =
   | { status: "ambiguous"; candidates: ResolvedTarget[] }
   | { status: "not_found" };
 
-// ---------------------------------------------------------------------------
-// Thresholds — tune with real usage
-// ---------------------------------------------------------------------------
-
 const MIN_THRESHOLD = 0.2;
 const CLEAR_WINNER_SCORE = 0.35;
-const CLEAR_WINNER_GAP = 0.15;
 const AMBIGUOUS_GAP = 0.15;
-
-// ---------------------------------------------------------------------------
-// resolveTarget — given userId + hints from the intent extractor, query
-// Note/Todo rows scoped to that user using pg_trgm similarity scoring.
-// ---------------------------------------------------------------------------
 
 export const resolveTarget = async (
   userId: number,

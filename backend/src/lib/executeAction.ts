@@ -3,9 +3,18 @@ import { createUndoToken } from "./undoStore.js";
 import type { VoiceIntent } from "./extractIntent.js";
 import type { ResolutionResult, ResolvedTarget } from "./resolveTarget.js";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+export interface ExecutionNote {
+  id: number;
+  userId: number;
+  title: string | null;
+  type: "PARAGRAPH" | "CHECKBOX";
+  content: string;
+  archived: boolean;
+  bookmarked: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  todos?: { id: number; noteId: number; text: string; done: boolean; order: number }[];
+}
 
 export interface ExecutionResult {
   status: "done" | "ambiguous" | "not_found";
@@ -15,21 +24,14 @@ export interface ExecutionResult {
   summary: string;
   undoToken?: string;
   candidates?: ResolvedTarget[];
+  note?: ExecutionNote;
 }
-
-// ---------------------------------------------------------------------------
-// executeAction — given a resolved intent + resolution, run the Prisma
-// mutation and produce an undo token. Only handles create_note and add_todo
-// for now (step 5). Other actions return "not yet supported".
-// ---------------------------------------------------------------------------
 
 export const executeAction = async (
   userId: number,
   intent: VoiceIntent,
   resolution: ResolutionResult
 ): Promise<ExecutionResult> => {
-  // Can't execute without a confident resolution (except create_note, which
-  // creates something new).
   if (resolution.status === "ambiguous") {
     return {
       status: "ambiguous",
@@ -49,11 +51,9 @@ export const executeAction = async (
 
   switch (intent.action) {
     case "create_note":
-      return executeCreateNote(userId, intent, resolution);
-
+      return executeCreateNote(userId, intent);
     case "add_todo":
       return executeAddTodo(userId, intent, resolution);
-
     default:
       return {
         status: "not_found",
@@ -63,30 +63,31 @@ export const executeAction = async (
   }
 };
 
-// ---------------------------------------------------------------------------
-// create_note
-// ---------------------------------------------------------------------------
-
 const executeCreateNote = async (
   userId: number,
-  intent: VoiceIntent,
-  resolution: ResolutionResult
+  intent: VoiceIntent
 ): Promise<ExecutionResult> => {
   const noteType = intent.note_type_hint || "PARAGRAPH";
   const title = intent.note_hint || "Untitled";
 
   if (noteType === "CHECKBOX") {
-    // Create a note with a single todo item if todo_hint is present.
-    const todoText = intent.todo_hint || title;
+    const items: string[] =
+      intent.todo_items && intent.todo_items.length > 0
+        ? intent.todo_items
+        : intent.todo_hint
+          ? [intent.todo_hint]
+          : [];
 
     const note = await prisma.$transaction(async (tx) => {
       const n = await tx.note.create({
         data: { userId, type: "CHECKBOX", title, content: "" },
       });
 
-      await tx.todo.create({
-        data: { noteId: n.id, text: todoText, order: 0 },
-      });
+      if (items.length > 0) {
+        await tx.todo.createMany({
+          data: items.map((text, i) => ({ noteId: n.id, text, order: i })),
+        });
+      }
 
       return tx.note.findUnique({
         where: { id: n.id },
@@ -95,37 +96,35 @@ const executeCreateNote = async (
     });
 
     const undoToken = createUndoToken("create_note", userId, { noteId: note!.id });
+    const itemCount = items.length;
 
     return {
       status: "done",
       action: "create_note",
       noteId: note!.id,
-      summary: `Created checklist "${title}" with "${todoText}"`,
+      summary: itemCount > 0
+        ? `Created checklist "${title}" with ${itemCount} item${itemCount > 1 ? "s" : ""}`
+        : `Created checklist "${title}"`,
       undoToken,
+      note: note as ExecutionNote,
     };
   }
 
-  // PARAGRAPH — use content if provided, otherwise just the title.
-  const content = intent.updates?.content || "";
-
+  const content = intent.content_paragraph || "";
   const note = await prisma.note.create({
     data: { userId, type: "PARAGRAPH", title, content },
   });
-
   const undoToken = createUndoToken("create_note", userId, { noteId: note.id });
 
   return {
     status: "done",
     action: "create_note",
     noteId: note.id,
-    summary: `Created note "${title}"`,
+    summary: content ? `Created note "${title}" with content` : `Created note "${title}"`,
     undoToken,
+    note: note as ExecutionNote,
   };
 };
-
-// ---------------------------------------------------------------------------
-// add_todo
-// ---------------------------------------------------------------------------
 
 const executeAddTodo = async (
   userId: number,
@@ -142,7 +141,6 @@ const executeAddTodo = async (
 
   const target = resolution.target;
 
-  // Verify the note belongs to this user and is a CHECKBOX note.
   const note = await prisma.note.findFirst({
     where: { id: target.noteId, userId, archived: false },
     include: { todos: { orderBy: { order: "desc" } } },
@@ -156,19 +154,42 @@ const executeAddTodo = async (
     };
   }
 
-  // If note is PARAGRAPH, convert it to CHECKBOX.
+  const todoText = intent.todo_hint || "New item";
+
   if (note.type === "PARAGRAPH") {
-    await prisma.note.update({
+    const separator = note.content ? "\n" : "";
+    const newContent = note.content + separator + `- ${todoText}`;
+
+    const updated = await prisma.note.update({
       where: { id: note.id },
-      data: { type: "CHECKBOX", content: "" },
+      data: { content: newContent },
+      include: { todos: true },
     });
+
+    const undoToken = createUndoToken("add_todo", userId, {
+      noteId: note.id,
+      previousContent: note.content,
+      type: "paragraph",
+    });
+
+    return {
+      status: "done",
+      action: "add_todo",
+      noteId: note.id,
+      summary: `Added "${todoText}" to "${note.title || "Untitled"}"`,
+      undoToken,
+      note: updated as ExecutionNote,
+    };
   }
 
-  const todoText = intent.todo_hint || "New item";
   const nextOrder = (note.todos[0]?.order ?? -1) + 1;
-
   const todo = await prisma.todo.create({
     data: { noteId: note.id, text: todoText, order: nextOrder },
+  });
+
+  const noteWithTodos = await prisma.note.findUnique({
+    where: { id: note.id },
+    include: { todos: { orderBy: { order: "asc" } } },
   });
 
   const undoToken = createUndoToken("add_todo", userId, {
@@ -183,5 +204,6 @@ const executeAddTodo = async (
     todoId: todo.id,
     summary: `Added "${todoText}" to "${note.title || "Untitled"}"`,
     undoToken,
+    note: noteWithTodos as ExecutionNote,
   };
 };

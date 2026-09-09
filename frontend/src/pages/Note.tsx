@@ -244,7 +244,17 @@ const Note = () => {
         onNoteDeleted={handleNoteDeleted}
       />
 
-      <VoiceControl onActionDone={() => setRetryCount((c) => c + 1)} />
+      <VoiceControl
+        onActionDone={(note) => {
+          if (note) {
+            setNotes((prev) => [note, ...prev]);
+            setSelectedNote(note);
+            setModalOpen(true);
+          } else {
+            setRetryCount((c) => c + 1);
+          }
+        }}
+      />
     </div>
   );
 };
