@@ -74,17 +74,29 @@ export const resolveTarget = async (
     return { status: "not_found" };
   }
 
-  const best = candidates[0]!;
-  const runnerUp = candidates[1];
-
-  if (best.combinedScore < MIN_THRESHOLD) {
+  const bestRaw = candidates[0]!;
+  if (bestRaw.combinedScore < MIN_THRESHOLD) {
     return { status: "not_found" };
   }
 
-  const gap = runnerUp ? best.combinedScore - runnerUp.combinedScore : Infinity;
+  const grouped = new Map<number, ResolvedTarget>();
+  for (const c of candidates) {
+    const existing = grouped.get(c.noteId);
+    if (!existing || c.combinedScore > existing.combinedScore) {
+      grouped.set(c.noteId, c);
+    }
+  }
+  const unique = Array.from(grouped.values());
 
-  if (runnerUp && gap < AMBIGUOUS_GAP) {
-    return { status: "ambiguous", candidates: candidates.slice(0, 5) };
+  if (unique.length === 0) {
+    return { status: "not_found" };
+  }
+
+  const best = unique[0]!;
+  const runnerUp = unique[1];
+
+  if (runnerUp && best.combinedScore - runnerUp.combinedScore < AMBIGUOUS_GAP) {
+    return { status: "ambiguous", candidates: unique.slice(0, 5) };
   }
 
   return { status: "found", target: best };

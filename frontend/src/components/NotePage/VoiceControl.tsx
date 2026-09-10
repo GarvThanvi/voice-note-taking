@@ -18,6 +18,7 @@ interface VoiceControlProps {
   onTranscript?: (transcript: string) => void;
   onIntent?: (intent: VoiceIntent) => void;
   onActionDone?: (note?: Note) => void;
+  onUndo?: () => void;
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -29,7 +30,7 @@ const ACTION_LABELS: Record<string, string> = {
   search: "Search",
 };
 
-const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProps) => {
+const VoiceControl = ({ onTranscript, onIntent, onActionDone, onUndo }: VoiceControlProps) => {
   const [phase, setPhase] = useState<Phase>("idle");
   const [toast, setToast] = useState<Toast | null>(null);
   const [undoing, setUndoing] = useState(false);
@@ -182,12 +183,13 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone }: VoiceControlProp
       await undoVoiceAction(toast.undoToken);
       setToast(null);
       onActionDone?.();
+      onUndo?.();
     } catch {
       // silent
     } finally {
       setUndoing(false);
     }
-  }, [toast?.undoToken, undoing, onActionDone]);
+  }, [toast?.undoToken, undoing, onActionDone, onUndo]);
 
   useEffect(() => {
     const isTypingTarget = (e: KeyboardEvent) => {

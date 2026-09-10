@@ -254,6 +254,10 @@ const Note = () => {
             setRetryCount((c) => c + 1);
           }
         }}
+        onUndo={() => {
+          setModalOpen(false);
+          setRetryCount((c) => c + 1);
+        }}
       />
     </div>
   );
