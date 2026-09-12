@@ -264,6 +264,9 @@ const Note = () => {
           setModalOpen(false);
           setRetryCount((c) => c + 1);
         }}
+        onSearch={(query) => {
+          setSearchQuery(query);
+        }}
       />
     </div>
   );

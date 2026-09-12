@@ -45,6 +45,7 @@ export interface ExecutionResult {
   undoToken?: string;
   candidates?: ResolvedTarget[];
   note?: Note;
+  searchQuery?: string | undefined;
 }
 
 export interface VoiceCommandResponse {

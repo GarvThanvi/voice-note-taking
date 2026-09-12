@@ -19,6 +19,7 @@ interface VoiceControlProps {
   onIntent?: (intent: VoiceIntent) => void;
   onActionDone?: (note?: Note) => void;
   onUndo?: () => void;
+  onSearch?: (query: string) => void;
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -31,7 +32,7 @@ const ACTION_LABELS: Record<string, string> = {
   search: "Search",
 };
 
-const VoiceControl = ({ onTranscript, onIntent, onActionDone, onUndo }: VoiceControlProps) => {
+const VoiceControl = ({ onTranscript, onIntent, onActionDone, onUndo, onSearch }: VoiceControlProps) => {
   const [phase, setPhase] = useState<Phase>("idle");
   const [toast, setToast] = useState<Toast | null>(null);
   const [undoing, setUndoing] = useState(false);
@@ -119,7 +120,12 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone, onUndo }: VoiceCon
           });
           onTranscript?.(data.transcript);
           if (data.intent) onIntent?.(data.intent);
-          if (exec?.status === "done") onActionDone?.(exec.note);
+          if (exec?.status === "done") {
+            onActionDone?.(exec.note);
+            if (exec.action === "search" && exec.searchQuery) {
+              onSearch?.(exec.searchQuery);
+            }
+          }
         } else {
           setToast({ kind: "error", message: data.message || "Transcription returned no text." });
         }
@@ -133,7 +139,7 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone, onUndo }: VoiceCon
         setPhaseSync("idle");
       }
     },
-    [onTranscript, onIntent, onActionDone, setPhaseSync]
+    [onTranscript, onIntent, onActionDone, onSearch, setPhaseSync]
   );
 
   const startRecording = useCallback(async () => {

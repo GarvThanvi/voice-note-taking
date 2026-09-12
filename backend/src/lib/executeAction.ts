@@ -25,6 +25,7 @@ export interface ExecutionResult {
   undoToken?: string;
   candidates?: ResolvedTarget[];
   note?: ExecutionNote;
+  searchQuery?: string | undefined;
 }
 
 export const executeAction = async (
@@ -60,6 +61,8 @@ export const executeAction = async (
       return executeUpdateTodo(userId, intent, resolution);
     case "update_note":
       return executeUpdateNote(userId, intent, resolution);
+    case "search":
+      return executeSearch(intent);
     default:
       return {
         status: "not_found",
@@ -439,5 +442,20 @@ const executeUpdateNote = async (
     summary: `Appended content to "${note.title || "Untitled"}"`,
     undoToken,
     note: updated as ExecutionNote,
+  };
+};
+
+const executeSearch = async (
+  intent: VoiceIntent
+): Promise<ExecutionResult> => {
+  const searchTerm = intent.note_hint || intent.todo_hint || "";
+
+  return {
+    status: "done",
+    action: "search",
+    summary: searchTerm
+      ? `Searching for "${searchTerm}"`
+      : "What would you like to search for?",
+    searchQuery: searchTerm || undefined,
   };
 };
