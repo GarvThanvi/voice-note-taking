@@ -54,6 +54,12 @@ export const executeAction = async (
       return executeCreateNote(userId, intent);
     case "add_todo":
       return executeAddTodo(userId, intent, resolution);
+    case "mark_done":
+      return executeMarkDone(userId, intent, resolution);
+    case "update_todo":
+      return executeUpdateTodo(userId, intent, resolution);
+    case "update_note":
+      return executeUpdateNote(userId, intent, resolution);
     default:
       return {
         status: "not_found",
@@ -205,5 +211,233 @@ const executeAddTodo = async (
     summary: `Added "${todoText}" to "${note.title || "Untitled"}"`,
     undoToken,
     note: noteWithTodos as ExecutionNote,
+  };
+};
+
+const executeMarkDone = async (
+  userId: number,
+  intent: VoiceIntent,
+  resolution: ResolutionResult
+): Promise<ExecutionResult> => {
+  if (resolution.status !== "found") {
+    return {
+      status: "not_found",
+      action: "mark_done",
+      summary: `No matching todo found for "${intent.todo_hint || ""}"`,
+    };
+  }
+
+  const target = resolution.target;
+
+  if (!target.todoId) {
+    return {
+      status: "not_found",
+      action: "mark_done",
+      summary: "Could not identify a specific todo item.",
+    };
+  }
+
+  const todo = await prisma.todo.findFirst({
+    where: {
+      id: target.todoId,
+      note: { userId, archived: false },
+    },
+    include: { note: true },
+  });
+
+  if (!todo) {
+    return {
+      status: "not_found",
+      action: "mark_done",
+      summary: "Todo not found or access denied.",
+    };
+  }
+
+  if (todo.note.type === "PARAGRAPH") {
+    return {
+      status: "not_found",
+      action: "mark_done",
+      summary: `"${todo.note.title || "Untitled"}" is a paragraph note and doesn't have todos to mark as done.`,
+    };
+  }
+
+  const newDone = !todo.done;
+
+  await prisma.todo.update({
+    where: { id: todo.id },
+    data: { done: newDone },
+  });
+
+  const noteWithTodos = await prisma.note.findUnique({
+    where: { id: todo.noteId },
+    include: { todos: { orderBy: { order: "asc" } } },
+  });
+
+  const undoToken = createUndoToken("mark_done", userId, {
+    todoId: todo.id,
+    previousDone: todo.done,
+  });
+
+  return {
+    status: "done",
+    action: "mark_done",
+    noteId: todo.noteId,
+    todoId: todo.id,
+    summary: newDone
+      ? `Marked "${todo.text}" as done in "${todo.note.title || "Untitled"}"`
+      : `Unmarked "${todo.text}" in "${todo.note.title || "Untitled"}"`,
+    undoToken,
+    note: noteWithTodos as ExecutionNote,
+  };
+};
+
+const executeUpdateTodo = async (
+  userId: number,
+  intent: VoiceIntent,
+  resolution: ResolutionResult
+): Promise<ExecutionResult> => {
+  if (resolution.status !== "found") {
+    return {
+      status: "not_found",
+      action: "update_todo",
+      summary: `No matching todo found for "${intent.todo_hint || ""}"`,
+    };
+  }
+
+  const target = resolution.target;
+
+  if (!target.todoId) {
+    return {
+      status: "not_found",
+      action: "update_todo",
+      summary: "Could not identify a specific todo item.",
+    };
+  }
+
+  const todo = await prisma.todo.findFirst({
+    where: {
+      id: target.todoId,
+      note: { userId, archived: false },
+    },
+    include: { note: true },
+  });
+
+  if (!todo) {
+    return {
+      status: "not_found",
+      action: "update_todo",
+      summary: "Todo not found or access denied.",
+    };
+  }
+
+  if (todo.note.type === "PARAGRAPH") {
+    return {
+      status: "not_found",
+      action: "update_todo",
+      summary: `"${todo.note.title || "Untitled"}" is a paragraph note. Use update_note to modify its content.`,
+    };
+  }
+
+  const newText = intent.updates?.new_text;
+  if (!newText) {
+    return {
+      status: "not_found",
+      action: "update_todo",
+      summary: "No new text provided for the update.",
+    };
+  }
+
+  await prisma.todo.update({
+    where: { id: todo.id },
+    data: { text: newText },
+  });
+
+  const noteWithTodos = await prisma.note.findUnique({
+    where: { id: todo.noteId },
+    include: { todos: { orderBy: { order: "asc" } } },
+  });
+
+  const undoToken = createUndoToken("update_todo", userId, {
+    todoId: todo.id,
+    previousText: todo.text,
+  });
+
+  return {
+    status: "done",
+    action: "update_todo",
+    noteId: todo.noteId,
+    todoId: todo.id,
+    summary: `Updated "${todo.text}" to "${newText}" in "${todo.note.title || "Untitled"}"`,
+    undoToken,
+    note: noteWithTodos as ExecutionNote,
+  };
+};
+
+const executeUpdateNote = async (
+  userId: number,
+  intent: VoiceIntent,
+  resolution: ResolutionResult
+): Promise<ExecutionResult> => {
+  if (resolution.status !== "found") {
+    return {
+      status: "not_found",
+      action: "update_note",
+      summary: `No matching note found for "${intent.note_hint || ""}"`,
+    };
+  }
+
+  const target = resolution.target;
+
+  const note = await prisma.note.findFirst({
+    where: { id: target.noteId, userId, archived: false },
+    include: { todos: true },
+  });
+
+  if (!note) {
+    return {
+      status: "not_found",
+      action: "update_note",
+      summary: "Note not found or access denied.",
+    };
+  }
+
+  if (note.type === "CHECKBOX") {
+    return {
+      status: "not_found",
+      action: "update_note",
+      summary: `"${note.title || "Untitled"}" is a checklist. Use add_todo to add items.`,
+    };
+  }
+
+  const contentToAdd = intent.content_paragraph;
+  if (!contentToAdd) {
+    return {
+      status: "not_found",
+      action: "update_note",
+      summary: "No content provided to append.",
+    };
+  }
+
+  const separator = note.content ? "\n" : "";
+  const newContent = note.content + separator + contentToAdd;
+
+  const updated = await prisma.note.update({
+    where: { id: note.id },
+    data: { content: newContent },
+    include: { todos: true },
+  });
+
+  const undoToken = createUndoToken("update_note", userId, {
+    noteId: note.id,
+    previousContent: note.content,
+  });
+
+  return {
+    status: "done",
+    action: "update_note",
+    noteId: note.id,
+    summary: `Appended content to "${note.title || "Untitled"}"`,
+    undoToken,
+    note: updated as ExecutionNote,
   };
 };

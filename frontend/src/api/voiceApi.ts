@@ -6,6 +6,7 @@ export type VoiceAction =
   | "add_todo"
   | "mark_done"
   | "update_todo"
+  | "update_note"
   | "archive"
   | "search";
 

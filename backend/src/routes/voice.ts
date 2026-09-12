@@ -47,7 +47,8 @@ router.post(
       const resolution = await resolveTarget(
         userId,
         intent.note_hint,
-        intent.todo_hint
+        intent.todo_hint,
+        intent.action
       );
 
       const execution = await executeAction(userId, intent, resolution);

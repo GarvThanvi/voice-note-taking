@@ -26,6 +26,7 @@ const ACTION_LABELS: Record<string, string> = {
   add_todo: "Add todo",
   mark_done: "Mark done",
   update_todo: "Update todo",
+  update_note: "Update note",
   archive: "Archive",
   search: "Search",
 };

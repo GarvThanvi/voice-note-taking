@@ -51,6 +51,42 @@ router.post("/undo", authMiddleware, async (req, res) => {
         break;
       }
 
+      case "mark_done": {
+        const { todoId, previousDone } = entry.payload as {
+          todoId: number;
+          previousDone: boolean;
+        };
+        await prisma.todo.update({
+          where: { id: todoId },
+          data: { done: previousDone },
+        });
+        break;
+      }
+
+      case "update_todo": {
+        const { todoId, previousText } = entry.payload as {
+          todoId: number;
+          previousText: string;
+        };
+        await prisma.todo.update({
+          where: { id: todoId },
+          data: { text: previousText },
+        });
+        break;
+      }
+
+      case "update_note": {
+        const { noteId, previousContent } = entry.payload as {
+          noteId: number;
+          previousContent: string;
+        };
+        await prisma.note.update({
+          where: { id: noteId },
+          data: { content: previousContent ?? "" },
+        });
+        break;
+      }
+
       default:
         return res.status(400).json({
           success: false,

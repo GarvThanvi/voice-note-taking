@@ -247,7 +247,13 @@ const Note = () => {
       <VoiceControl
         onActionDone={(note) => {
           if (note) {
-            setNotes((prev) => [note, ...prev]);
+            setNotes((prev) => {
+              const exists = prev.find((n) => n.id === note.id);
+              if (exists) {
+                return prev.map((n) => (n.id === note.id ? note : n));
+              }
+              return [note, ...prev];
+            });
             setSelectedNote(note);
             setModalOpen(true);
           } else {

@@ -7,6 +7,7 @@ export type VoiceAction =
   | "add_todo"
   | "mark_done"
   | "update_todo"
+  | "update_note"
   | "archive"
   | "search";
 
@@ -26,25 +27,25 @@ const SYSTEM_PROMPT = `You are a voice-command intent extractor for a notes & to
 Given a short spoken transcript, return a JSON object with exactly these fields:
 
 {
-  "action": one of "create_note" | "add_todo" | "mark_done" | "update_todo" | "archive" | "search",
+  "action": one of "create_note" | "add_todo" | "mark_done" | "update_todo" | "update_note" | "archive" | "search",
   "note_hint": string | null — a fuzzy hint about WHICH note (e.g. "shopping list", "workout plan"),
   "todo_hint": string | null — a single fuzzy hint about a specific todo item (e.g. "olive oil"),
   "todo_items": string[] | null — multiple items for a new checklist (e.g. ["milk", "eggs", "bread"]),
-  "content_paragraph": string | null — text content for a new paragraph note (e.g. "Discuss Q3 budget\nHire new dev"),
+  "content_paragraph": string | null — text content for a new paragraph note OR text to append to an existing paragraph note,
   "note_type_hint": "CHECKBOX" | "PARAGRAPH" | null — the note type the user implies,
-  "updates": object | null — key/value pairs of what to update (e.g. {"title": "new title"}),
+  "updates": object | null — key/value pairs of what to update (e.g. {"new_text": "oat milk"}),
   "confidence": number between 0 and 1 — how confident you are in this interpretation
 }
 
 Rules:
 - "create_note" means creating a brand new note:
-  - If the user implies a CHECKBOX note (list, items, groceries, checklist, todo) → set note_type_hint to "CHECKBOX" and fill todo_items with the individual items mentioned. Each item should be a clean, short string.
+  - If the user implies a CHECKBOX note (list, items, groceries, checklist, todo) → set note_type_hint to "CHECKBOX" and fill todo_items with the individual items mentioned.
   - If the user implies a PARAGRAPH note (meeting notes, journal, write, draft) → set note_type_hint to "PARAGRAPH" and fill content_paragraph with the text content.
   - Only fill ONE of todo_items or content_paragraph, never both.
-  - If the user just says "create a note called X" without specifying items or content, set note_type_hint to "PARAGRAPH" and leave content_paragraph null.
-- "add_todo" means adding a todo item to an EXISTING note (use todo_hint for the item text, note_hint for which note).
+- "add_todo" means adding a todo item to an EXISTING CHECKBOX note (use todo_hint for the item text, note_hint for which note).
 - "mark_done" means marking a todo as completed (use todo_hint for which item).
-- "update_todo" means changing the text of an existing todo (use todo_hint for old text, updates.new_text for new).
+- "update_todo" means changing the text of an existing todo in a CHECKBOX note (use todo_hint for old text, updates.new_text for new text).
+- "update_note" means appending content to an EXISTING PARAGRAPH note (use note_hint for which note, content_paragraph for the text to append).
 - "archive" means archiving a note (use note_hint).
 - "search" means searching notes/todos (use note_hint or todo_hint as the search query).
 - If the transcript is ambiguous, lower the confidence score.
@@ -74,6 +75,7 @@ export const extractIntent = async (transcript: string): Promise<VoiceIntent> =>
     "add_todo",
     "mark_done",
     "update_todo",
+    "update_note",
     "archive",
     "search",
   ];

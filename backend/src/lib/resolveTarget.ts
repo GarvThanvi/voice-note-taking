@@ -22,7 +22,8 @@ const AMBIGUOUS_GAP = 0.15;
 export const resolveTarget = async (
   userId: number,
   noteHint: string | null,
-  todoHint: string | null
+  todoHint: string | null,
+  action?: string
 ): Promise<ResolutionResult> => {
   if (!noteHint && !todoHint) {
     return { status: "not_found" };
@@ -67,7 +68,7 @@ export const resolveTarget = async (
         (${todoHint}::text IS NOT NULL AND t.text IS NOT NULL AND similarity(t.text, ${todoHint}::text) > 0)
       )
     ORDER BY "combinedScore" DESC
-    LIMIT 5
+    LIMIT 10
   `;
 
   if (!candidates || candidates.length === 0) {
@@ -79,6 +80,35 @@ export const resolveTarget = async (
     return { status: "not_found" };
   }
 
+  // For mark_done/update_todo: find the best TODO match, not the best note.
+  // Don't group by noteId — keep individual todo candidates.
+  if (action === "mark_done" || action === "update_todo") {
+    const todoCandidates = candidates.filter((c) => c.todoId !== null);
+
+    if (todoCandidates.length === 0) {
+      return { status: "not_found" };
+    }
+
+    // If noteHint is provided, prefer todos from matching notes.
+    const noteFiltered = todoCandidates.filter((c) => c.noteScore > 0);
+    const pool = noteFiltered.length > 0 ? noteFiltered : todoCandidates;
+
+    pool.sort((a, b) => b.todoScore - a.todoScore);
+    const best = pool[0]!;
+    const runnerUp = pool[1];
+
+    if (best.todoScore < MIN_THRESHOLD) {
+      return { status: "not_found" };
+    }
+
+    if (runnerUp && best.todoScore - runnerUp.todoScore < AMBIGUOUS_GAP) {
+      return { status: "ambiguous", candidates: pool.slice(0, 5) };
+    }
+
+    return { status: "found", target: best };
+  }
+
+  // For add_todo/archive/etc: find the best NOTE match (group by noteId).
   const grouped = new Map<number, ResolvedTarget>();
   for (const c of candidates) {
     const existing = grouped.get(c.noteId);
