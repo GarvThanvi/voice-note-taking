@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, FileText, Bookmark, LogOut } from "lucide-react";
+import { Plus, FileText, Bookmark, Archive, Trash2, LogOut } from "lucide-react";
 import { AudioWaveform } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -79,6 +79,18 @@ const Sidebar = ({ onNewNote, activeFilter, onFilterChange }: SidebarProps) => {
           label="Bookmark"
           active={activeFilter === "bookmark"}
           onClick={() => onFilterChange("bookmark")}
+        />
+        <SidebarItem
+          icon={<Archive size={18} />}
+          label="Archive"
+          active={activeFilter === "archive"}
+          onClick={() => onFilterChange("archive")}
+        />
+        <SidebarItem
+          icon={<Trash2 size={18} />}
+          label="Trash"
+          active={activeFilter === "trash"}
+          onClick={() => onFilterChange("trash")}
         />
       </nav>
 

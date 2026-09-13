@@ -1,11 +1,17 @@
-import { Search, Moon, Sun, Grid2X2, List } from "lucide-react";
+import { Search, Moon, Sun, Grid2X2, List, Info } from "lucide-react";
 import { useState, useEffect } from "react";
 import Sidebar from "../components/NotePage/Sidebar";
 import NoteCard from "../components/NotePage/NoteCard";
 import NoteListItem from "../components/NotePage/NoteListItem";
 import NoteModal from "../components/NotePage/NoteModal";
 import VoiceControl from "../components/NotePage/VoiceControl";
-import { getNotes, updateNote, deleteNote } from "../api/noteApi";
+import {
+  getNotes,
+  updateNote,
+  deleteNote,
+  permanentDeleteNote,
+  emptyTrash,
+} from "../api/noteApi";
 import { useTheme } from "../context/ThemeContext";
 import { useDebounce } from "../hooks/useDebounce";
 import type { Note } from "../api/noteApi";
@@ -22,6 +28,13 @@ const Note = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [activeFilter, setActiveFilter] = useState("all");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,8 +42,12 @@ const Note = () => {
       try {
         setLoading(true);
         setError(null);
-        const isBookmarked = activeFilter === "bookmark";
-        const data = await getNotes(isBookmarked, debouncedSearch || undefined);
+        const data = await getNotes({
+          bookmarked: activeFilter === "bookmark",
+          archived: activeFilter === "archive",
+          trashed: activeFilter === "trash",
+          search: debouncedSearch || undefined,
+        });
         if (!cancelled) {
           setNotes(data);
         }
@@ -65,8 +82,59 @@ const Note = () => {
 
   const handleDeleteNote = async (noteId: number) => {
     try {
+      const noteTitle = notes.find((n) => n.id === noteId)?.title || "Note";
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      await deleteNote(noteId);
+      await updateNote(noteId, { deletedAt: new Date().toISOString(), archived: false });
+      setToast({ message: `"${noteTitle}" moved to trash. You can restore it from Trash.`, type: "info" });
+    } catch {
+      setRetryCount((c) => c + 1);
+    }
+  };
+
+  const handleArchiveNote = async (noteId: number) => {
+    try {
+      const note = notes.find((n) => n.id === noteId);
+      if (!note) return;
+      const updated = await updateNote(noteId, { archived: !note.archived });
+      if (activeFilter === "all" || activeFilter === "archive") {
+        setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      } else {
+        setNotes((prev) => prev.map((n) => (n.id === noteId ? updated : n)));
+      }
+      const noteTitle = note.title || "Note";
+      setToast({
+        message: updated.archived
+          ? `"${noteTitle}" archived`
+          : `"${noteTitle}" unarchived`,
+        type: "info",
+      });
+    } catch {
+      setRetryCount((c) => c + 1);
+    }
+  };
+
+  const handleRestoreNote = async (noteId: number) => {
+    try {
+      await updateNote(noteId, { deletedAt: null });
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    } catch {
+      setRetryCount((c) => c + 1);
+    }
+  };
+
+  const handlePermanentDelete = async (noteId: number) => {
+    try {
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      await permanentDeleteNote(noteId);
+    } catch {
+      setRetryCount((c) => c + 1);
+    }
+  };
+
+  const handleEmptyTrash = async () => {
+    try {
+      await emptyTrash();
+      setNotes([]);
     } catch {
       setRetryCount((c) => c + 1);
     }
@@ -98,7 +166,14 @@ const Note = () => {
     setModalOpen(false);
   };
 
-  const pageTitle = activeFilter === "bookmark" ? "Bookmark" : "All Notes";
+  const pageTitle =
+    activeFilter === "archive"
+      ? "Archive"
+      : activeFilter === "trash"
+        ? "Trash"
+        : activeFilter === "bookmark"
+          ? "Bookmark"
+          : "All Notes";
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
@@ -204,32 +279,61 @@ const Note = () => {
             </div>
           ) : notes.length === 0 ? (
             <div className="flex items-center justify-center py-20">
-              <p className="text-sm text-muted-foreground">No notes found</p>
-            </div>
-          ) : view === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-              {notes.map((note) => (
-                <NoteCard
-                  key={note.id}
-                  note={note}
-                  onClick={() => handleOpenModal(note)}
-                  onToggleFavorite={handleToggleFavorite}
-                  onDelete={handleDeleteNote}
-                />
-              ))}
+              <p className="text-sm text-muted-foreground">
+                {activeFilter === "trash"
+                  ? "Trash is empty"
+                  : activeFilter === "archive"
+                    ? "No archived notes"
+                    : "No notes found"}
+              </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {notes.map((note) => (
-                <NoteListItem
-                  key={note.id}
-                  note={note}
-                  onClick={() => handleOpenModal(note)}
-                  onToggleFavorite={handleToggleFavorite}
-                  onDelete={handleDeleteNote}
-                />
-              ))}
-            </div>
+            <>
+              {activeFilter === "trash" && (
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={handleEmptyTrash}
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                  >
+                    Empty trash
+                  </button>
+                </div>
+              )}
+
+              {view === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                  {notes.map((note) => (
+                    <NoteCard
+                      key={note.id}
+                      note={note}
+                      onClick={() => handleOpenModal(note)}
+                      onToggleFavorite={handleToggleFavorite}
+                      onDelete={handleDeleteNote}
+                      onArchive={handleArchiveNote}
+                      onRestore={handleRestoreNote}
+                      onPermanentDelete={handlePermanentDelete}
+                      filter={activeFilter}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {notes.map((note) => (
+                    <NoteListItem
+                      key={note.id}
+                      note={note}
+                      onClick={() => handleOpenModal(note)}
+                      onToggleFavorite={handleToggleFavorite}
+                      onDelete={handleDeleteNote}
+                      onArchive={handleArchiveNote}
+                      onRestore={handleRestoreNote}
+                      onPermanentDelete={handlePermanentDelete}
+                      filter={activeFilter}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
@@ -242,6 +346,7 @@ const Note = () => {
         onNoteCreated={handleNoteCreated}
         onNoteUpdated={handleNoteUpdated}
         onNoteDeleted={handleNoteDeleted}
+        onArchive={handleArchiveNote}
       />
 
       <VoiceControl
@@ -268,6 +373,15 @@ const Note = () => {
           setSearchQuery(query);
         }}
       />
+
+      {toast && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100]">
+          <div className="flex items-center gap-3 rounded-full border border-border bg-surface px-5 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+            <Info size={16} className="text-primary shrink-0" />
+            <span className="text-sm font-medium text-foreground">{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

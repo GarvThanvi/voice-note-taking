@@ -17,6 +17,7 @@ export interface Note {
   type: "PARAGRAPH" | "CHECKBOX";
   content?: string;
   archived: boolean;
+  deletedAt?: string | null;
   bookmarked: boolean;
   createdAt: string;
   updatedAt: string;
@@ -31,21 +32,23 @@ interface CreateNoteData {
 }
 
 interface UpdateNoteData {
+  title?: string;
   type?: "PARAGRAPH" | "CHECKBOX";
   content?: string;
   archived?: boolean;
+  deletedAt?: string | null;
   bookmarked?: boolean;
   todos?: string[];
 }
 
-export const getNotes = async (bookmarked?: boolean, search?: string): Promise<Note[]> => {
+export const getNotes = async (
+  options?: { bookmarked?: boolean; search?: string; archived?: boolean; trashed?: boolean }
+): Promise<Note[]> => {
   const params = new URLSearchParams();
-  if (bookmarked) {
-    params.set("bookmarked", "true");
-  }
-  if (search) {
-    params.set("search", search);
-  }
+  if (options?.bookmarked) params.set("bookmarked", "true");
+  if (options?.search) params.set("search", options.search);
+  if (options?.archived) params.set("archived", "true");
+  if (options?.trashed) params.set("trashed", "true");
   const queryString = params.toString();
   const url = `/note${queryString ? `?${queryString}` : ""}`;
   const response = await api.get(url);
@@ -79,6 +82,22 @@ export const updateNote = async (
 
 export const deleteNote = async (noteId: number): Promise<void> => {
   const response = await api.delete(`/note/${noteId}`);
+  const data = response.data;
+  if (!data.success) {
+    throw new Error(data.message);
+  }
+};
+
+export const permanentDeleteNote = async (noteId: number): Promise<void> => {
+  const response = await api.delete(`/note/${noteId}/permanent`);
+  const data = response.data;
+  if (!data.success) {
+    throw new Error(data.message);
+  }
+};
+
+export const emptyTrash = async (): Promise<void> => {
+  const response = await api.delete("/note/trash/empty");
   const data = response.data;
   if (!data.success) {
     throw new Error(data.message);

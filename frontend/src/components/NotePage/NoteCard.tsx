@@ -1,4 +1,4 @@
-import { Bookmark, Trash2 } from "lucide-react";
+import { Bookmark, Trash2, Archive, ArchiveRestore, Undo2, X } from "lucide-react";
 import type { Note } from "../../api/noteApi";
 
 interface NoteCardProps {
@@ -6,9 +6,13 @@ interface NoteCardProps {
   onClick: () => void;
   onToggleFavorite: (noteId: number, bookmarked: boolean) => void;
   onDelete: (noteId: number) => void;
+  onArchive?: (noteId: number) => void;
+  onRestore?: (noteId: number) => void;
+  onPermanentDelete?: (noteId: number) => void;
+  filter?: string;
 }
 
-const NoteCard = ({ note, onClick, onToggleFavorite, onDelete }: NoteCardProps) => {
+const NoteCard = ({ note, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, filter }: NoteCardProps) => {
   return (
     <article
       onClick={onClick}
@@ -50,32 +54,82 @@ const NoteCard = ({ note, onClick, onToggleFavorite, onDelete }: NoteCardProps) 
           </span>
 
           <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite(note.id, note.bookmarked);
-              }}
-              className={`
-                w-8 h-8 rounded-md flex items-center justify-center transition-colors
-                ${note.bookmarked ? "text-yellow-400" : "text-muted-foreground hover:text-foreground"}
-              `}
-            >
-              <Bookmark size={17} fill={note.bookmarked ? "currentColor" : "none"} />
-            </button>
+            {filter === "trash" ? (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRestore?.(note.id);
+                  }}
+                  className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                  title="Restore"
+                >
+                  <Undo2 size={17} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPermanentDelete?.(note.id);
+                  }}
+                  className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  title="Delete permanently"
+                >
+                  <X size={17} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite(note.id, note.bookmarked);
+                  }}
+                  className={`
+                    w-8 h-8 rounded-md flex items-center justify-center transition-colors
+                    ${note.bookmarked ? "text-yellow-400" : "text-muted-foreground hover:text-foreground"}
+                  `}
+                >
+                  <Bookmark size={17} fill={note.bookmarked ? "currentColor" : "none"} />
+                </button>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(note.id);
-              }}
-              className="
-                w-8 h-8 rounded-md flex items-center justify-center
-                text-muted-foreground hover:text-red-400 hover:bg-red-500/10
-                transition-colors
-              "
-            >
-              <Trash2 size={17} />
-            </button>
+                {filter !== "archive" && onArchive && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onArchive(note.id);
+                    }}
+                    className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface transition-colors"
+                    title="Archive"
+                  >
+                    <Archive size={17} />
+                  </button>
+                )}
+
+                {filter === "archive" && onArchive && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onArchive(note.id);
+                    }}
+                    className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    title="Unarchive"
+                  >
+                    <ArchiveRestore size={17} />
+                  </button>
+                )}
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(note.id);
+                  }}
+                  className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  title="Move to trash"
+                >
+                  <Trash2 size={17} />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

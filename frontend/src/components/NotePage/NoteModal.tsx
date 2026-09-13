@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Trash2, CheckSquare, AlignLeft } from "lucide-react";
+import { X, Trash2, CheckSquare, AlignLeft, Archive } from "lucide-react";
 import { createNote, updateNote, deleteNote, toggleTodoComplete } from "../../api/noteApi";
 import { useDebouncedCallback } from "../../hooks/useDebounce";
 import type { Note } from "../../api/noteApi";
@@ -11,9 +11,10 @@ interface NoteModalProps {
   onNoteCreated: (note: Note) => void;
   onNoteUpdated: (note: Note) => void;
   onNoteDeleted: (noteId: number) => void;
+  onArchive?: (noteId: number) => void;
 }
 
-const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNoteDeleted }: NoteModalProps) => {
+const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNoteDeleted, onArchive }: NoteModalProps) => {
   const isEdit = !!note;
   const [title, setTitle] = useState(note?.title || "");
   const [content, setContent] = useState(note?.type === "PARAGRAPH" ? (note?.content || "") : "");
@@ -310,13 +311,27 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
 
         <div className="flex items-center justify-between px-6 py-4 border-t border-border">
           {isEdit ? (
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
-            >
-              <Trash2 size={14} />
-              Delete
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
+              >
+                <Trash2 size={14} />
+                Delete
+              </button>
+              {onArchive && (
+                <button
+                  onClick={() => {
+                    onArchive(note.id);
+                    onClose();
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-surface transition-all"
+                >
+                  <Archive size={14} />
+                  {note.archived ? "Unarchive" : "Archive"}
+                </button>
+              )}
+            </div>
           ) : (
             <div />
           )}

@@ -179,9 +179,22 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
 app.get("/api/note", authMiddleware, async (req, res) => {
   try {
     const userId: number = req.userId!;
-    const { bookmarked, search } = req.query;
+    const { bookmarked, search, archived, trashed } = req.query;
 
     const where: any = { userId };
+
+    if (trashed === "true") {
+      where.deletedAt = { not: null };
+    } else {
+      where.deletedAt = null;
+    }
+
+    if (archived === "true") {
+      where.archived = true;
+    } else if (trashed !== "true") {
+      where.archived = false;
+    }
+
     if (bookmarked === "true") {
       where.bookmarked = true;
     }
@@ -213,6 +226,7 @@ app.get("/api/note", authMiddleware, async (req, res) => {
           type: note.type,
           content: note.content,
           archived: note.archived,
+          deletedAt: note.deletedAt,
           bookmarked: note.bookmarked,
           createdAt: note.createdAt,
           updatedAt: note.updatedAt,
@@ -226,6 +240,7 @@ app.get("/api/note", authMiddleware, async (req, res) => {
           type: note.type,
           todos: note.todos,
           archived: note.archived,
+          deletedAt: note.deletedAt,
           bookmarked: note.bookmarked,
           createdAt: note.createdAt,
           updatedAt: note.updatedAt,
@@ -345,21 +360,14 @@ app.delete("/api/note/:noteId", authMiddleware, async (req, res) => {
       });
     }
 
-    await prisma.todo.deleteMany({
-      where: {
-        noteId,
-      },
-    });
-
-    await prisma.note.delete({
-      where: {
-        id: noteId,
-      },
+    await prisma.note.update({
+      where: { id: noteId },
+      data: { deletedAt: new Date() },
     });
 
     return res.status(200).json({
       success: true,
-      message: "Note deleted successfully",
+      message: "Note moved to trash",
     });
   } catch (error) {
     console.error("Error deleting note:", error);
@@ -521,6 +529,56 @@ app.put("/api/note/todo/complete/:noteId", authMiddleware, async (req, res) => {
       success: false,
       message: "Internal server error",
     });
+  }
+});
+
+app.delete("/api/note/:noteId/permanent", authMiddleware, async (req, res) => {
+  try {
+    const noteId = Number(req.params.noteId);
+    const userId = req.userId!;
+
+    if (isNaN(noteId)) {
+      return res.status(400).json({ success: false, message: "Invalid note ID" });
+    }
+
+    const note = await prisma.note.findFirst({ where: { id: noteId, userId } });
+    if (!note) {
+      return res.status(404).json({ success: false, message: "Note not found" });
+    }
+
+    await prisma.todo.deleteMany({ where: { noteId } });
+    await prisma.note.delete({ where: { id: noteId } });
+
+    return res.status(200).json({ success: true, message: "Note permanently deleted" });
+  } catch (error) {
+    console.error("Error permanently deleting note:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+app.delete("/api/note/trash/empty", authMiddleware, async (req, res) => {
+  try {
+    const userId: number = req.userId!;
+
+    const trashedNotes = await prisma.note.findMany({
+      where: { userId, deletedAt: { not: null } },
+      select: { id: true },
+    });
+
+    const noteIds = trashedNotes.map((n) => n.id);
+
+    if (noteIds.length > 0) {
+      await prisma.todo.deleteMany({ where: { noteId: { in: noteIds } } });
+      await prisma.note.deleteMany({ where: { id: { in: noteIds } } });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Permanently deleted ${noteIds.length} note${noteIds.length !== 1 ? "s" : ""}`,
+    });
+  } catch (error) {
+    console.error("Error emptying trash:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 

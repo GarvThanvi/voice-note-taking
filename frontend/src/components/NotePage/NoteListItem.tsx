@@ -1,4 +1,4 @@
-import { Bookmark, Trash2 } from "lucide-react";
+import { Bookmark, Trash2, Archive, ArchiveRestore, Undo2, X } from "lucide-react";
 import type { Note } from "../../api/noteApi";
 
 interface NoteListItemProps {
@@ -6,9 +6,13 @@ interface NoteListItemProps {
   onClick: () => void;
   onToggleFavorite: (noteId: number, bookmarked: boolean) => void;
   onDelete: (noteId: number) => void;
+  onArchive?: (noteId: number) => void;
+  onRestore?: (noteId: number) => void;
+  onPermanentDelete?: (noteId: number) => void;
+  filter?: string;
 }
 
-const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete }: NoteListItemProps) => {
+const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, filter }: NoteListItemProps) => {
   return (
     <article
       onClick={onClick}
@@ -47,28 +51,82 @@ const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete }: NoteListIte
           })}
         </span>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite(note.id, note.bookmarked);
-          }}
-          className={`
-            text-muted-foreground hover:text-foreground
-            ${note.bookmarked ? "text-yellow-400" : ""}
-          `}
-        >
-          <Bookmark size={17} fill={note.bookmarked ? "currentColor" : "none"} />
-        </button>
+        {filter === "trash" ? (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRestore?.(note.id);
+              }}
+              className="text-muted-foreground hover:text-primary transition-colors"
+              title="Restore"
+            >
+              <Undo2 size={17} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPermanentDelete?.(note.id);
+              }}
+              className="text-muted-foreground hover:text-red-400 transition-colors"
+              title="Delete permanently"
+            >
+              <X size={17} />
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(note.id, note.bookmarked);
+              }}
+              className={`
+                text-muted-foreground hover:text-foreground
+                ${note.bookmarked ? "text-yellow-400" : ""}
+              `}
+            >
+              <Bookmark size={17} fill={note.bookmarked ? "currentColor" : "none"} />
+            </button>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(note.id);
-          }}
-          className="text-muted-foreground hover:text-red-400 transition-colors"
-        >
-          <Trash2 size={17} />
-        </button>
+            {filter !== "archive" && onArchive && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(note.id);
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Archive"
+              >
+                <Archive size={17} />
+              </button>
+            )}
+
+            {filter === "archive" && onArchive && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(note.id);
+                }}
+                className="text-muted-foreground hover:text-primary transition-colors"
+                title="Unarchive"
+              >
+                <ArchiveRestore size={17} />
+              </button>
+            )}
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(note.id);
+              }}
+              className="text-muted-foreground hover:text-red-400 transition-colors"
+              title="Move to trash"
+            >
+              <Trash2 size={17} />
+            </button>
+          </>
+        )}
       </div>
     </article>
   );
