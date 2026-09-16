@@ -24,6 +24,13 @@ export interface Note {
   todos?: Todo[];
 }
 
+export interface PaginatedNotes {
+  notes: Note[];
+  total: number;
+  page: number;
+  hasMore: boolean;
+}
+
 interface CreateNoteData {
   type: "PARAGRAPH" | "CHECKBOX";
   title?: string;
@@ -42,13 +49,22 @@ interface UpdateNoteData {
 }
 
 export const getNotes = async (
-  options?: { bookmarked?: boolean; search?: string; archived?: boolean; trashed?: boolean }
-): Promise<Note[]> => {
+  options?: {
+    bookmarked?: boolean;
+    search?: string;
+    archived?: boolean;
+    trashed?: boolean;
+    page?: number;
+    limit?: number;
+  }
+): Promise<PaginatedNotes> => {
   const params = new URLSearchParams();
   if (options?.bookmarked) params.set("bookmarked", "true");
   if (options?.search) params.set("search", options.search);
   if (options?.archived) params.set("archived", "true");
   if (options?.trashed) params.set("trashed", "true");
+  params.set("page", String(options?.page ?? 1));
+  params.set("limit", String(options?.limit ?? 12));
   const queryString = params.toString();
   const url = `/note${queryString ? `?${queryString}` : ""}`;
   const response = await api.get(url);
@@ -56,7 +72,16 @@ export const getNotes = async (
   if (!data.success) {
     throw new Error(data.message);
   }
-  return Array.isArray(data.message) ? data.message : [];
+  const message = data.message;
+  if (message && Array.isArray(message.notes)) {
+    return {
+      notes: message.notes,
+      total: typeof message.total === "number" ? message.total : message.notes.length,
+      page: typeof message.page === "number" ? message.page : 1,
+      hasMore: Boolean(message.hasMore),
+    };
+  }
+  return { notes: [], total: 0, page: 1, hasMore: false };
 };
 
 export const createNote = async (noteData: CreateNoteData): Promise<Note> => {

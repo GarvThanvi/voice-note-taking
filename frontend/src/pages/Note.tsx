@@ -4,68 +4,52 @@ import Sidebar from "../components/NotePage/Sidebar";
 import NoteCard from "../components/NotePage/NoteCard";
 import NoteListItem from "../components/NotePage/NoteListItem";
 import NoteModal from "../components/NotePage/NoteModal";
+import NoteSkeleton from "../components/NotePage/NoteSkeleton";
+import NoteEndIndicator from "../components/NotePage/NoteEndIndicator";
 import VoiceControl from "../components/NotePage/VoiceControl";
 import {
-  getNotes,
   updateNote,
-  deleteNote,
   permanentDeleteNote,
   emptyTrash,
 } from "../api/noteApi";
 import { useTheme } from "../context/ThemeContext";
 import { useDebounce } from "../hooks/useDebounce";
+import { useInfiniteNotes } from "../hooks/useInfiniteNotes";
+import { useIntersectionObserver } from "../hooks/useIntersectionObserver";
 import type { Note } from "../api/noteApi";
 
 const Note = () => {
   const { theme, toggleTheme } = useTheme();
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
-  const [retryCount, setRetryCount] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [activeFilter, setActiveFilter] = useState("all");
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
+
+  const {
+    notes,
+    total,
+    setNotes,
+    setTotal,
+    initialLoading,
+    loadingMore,
+    hasMore,
+    error,
+    loadMore,
+    reset,
+  } = useInfiniteNotes(activeFilter, debouncedSearch);
+
+  const sentryRef = useIntersectionObserver(loadMore, {
+    enabled: hasMore && !loadingMore && !error,
+  });
 
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(id);
   }, [toast]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetchNotes = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getNotes({
-          bookmarked: activeFilter === "bookmark",
-          archived: activeFilter === "archive",
-          trashed: activeFilter === "trash",
-          search: debouncedSearch || undefined,
-        });
-        if (!cancelled) {
-          setNotes(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load notes");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-    fetchNotes();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeFilter, retryCount, debouncedSearch]);
 
   const handleToggleFavorite = async (noteId: number, bookmarked: boolean) => {
     try {
@@ -84,10 +68,11 @@ const Note = () => {
     try {
       const noteTitle = notes.find((n) => n.id === noteId)?.title || "Note";
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      setTotal((prev) => Math.max(0, prev - 1));
       await updateNote(noteId, { deletedAt: new Date().toISOString(), archived: false });
       setToast({ message: `"${noteTitle}" moved to trash. You can restore it from Trash.`, type: "info" });
     } catch {
-      setRetryCount((c) => c + 1);
+      reset();
     }
   };
 
@@ -98,6 +83,7 @@ const Note = () => {
       const updated = await updateNote(noteId, { archived: !note.archived });
       if (activeFilter === "all" || activeFilter === "archive") {
         setNotes((prev) => prev.filter((n) => n.id !== noteId));
+        setTotal((prev) => Math.max(0, prev - 1));
       } else {
         setNotes((prev) => prev.map((n) => (n.id === noteId ? updated : n)));
       }
@@ -109,7 +95,7 @@ const Note = () => {
         type: "info",
       });
     } catch {
-      setRetryCount((c) => c + 1);
+      reset();
     }
   };
 
@@ -117,17 +103,19 @@ const Note = () => {
     try {
       await updateNote(noteId, { deletedAt: null });
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      setTotal((prev) => Math.max(0, prev - 1));
     } catch {
-      setRetryCount((c) => c + 1);
+      reset();
     }
   };
 
   const handlePermanentDelete = async (noteId: number) => {
     try {
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      setTotal((prev) => Math.max(0, prev - 1));
       await permanentDeleteNote(noteId);
     } catch {
-      setRetryCount((c) => c + 1);
+      reset();
     }
   };
 
@@ -135,8 +123,9 @@ const Note = () => {
     try {
       await emptyTrash();
       setNotes([]);
+      setTotal(0);
     } catch {
-      setRetryCount((c) => c + 1);
+      reset();
     }
   };
 
@@ -153,6 +142,7 @@ const Note = () => {
   const handleNoteCreated = (note: Note) => {
     if (activeFilter === "all") {
       setNotes((prev) => [note, ...prev]);
+      setTotal((prev) => prev + 1);
     }
     setModalOpen(false);
   };
@@ -163,6 +153,7 @@ const Note = () => {
 
   const handleNoteDeleted = (noteId: number) => {
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    setTotal((prev) => Math.max(0, prev - 1));
     setModalOpen(false);
   };
 
@@ -233,7 +224,7 @@ const Note = () => {
                 {pageTitle}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {notes.length} notes
+                {total} notes
               </p>
             </div>
 
@@ -259,25 +250,27 @@ const Note = () => {
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-sm text-muted-foreground">Loading notes...</div>
-            </div>
-          ) : error ? (
+          {initialLoading ? (
+            view === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                <NoteSkeleton variant="grid" count={8} />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <NoteSkeleton variant="list" count={8} />
+              </div>
+            )
+          ) : error && notes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <p className="text-sm text-red-400">{error}</p>
               <button
-                onClick={() => {
-                  setLoading(true);
-                  setError(null);
-                  setRetryCount((c) => c + 1);
-                }}
+                onClick={reset}
                 className="text-sm text-primary hover:text-primary-hover transition-colors"
               >
                 Try again
               </button>
             </div>
-          ) : notes.length === 0 ? (
+          ) : total === 0 ? (
             <div className="flex items-center justify-center py-20">
               <p className="text-sm text-muted-foreground">
                 {activeFilter === "trash"
@@ -333,6 +326,16 @@ const Note = () => {
                   ))}
                 </div>
               )}
+
+              <div ref={sentryRef} className="h-px w-full" aria-hidden="true" />
+
+              <NoteEndIndicator
+                hasMore={hasMore}
+                loadingMore={loadingMore}
+                variant={view}
+                error={error}
+                onRetry={loadMore}
+              />
             </>
           )}
         </div>
@@ -352,22 +355,24 @@ const Note = () => {
       <VoiceControl
         onActionDone={(note) => {
           if (note) {
+            const exists = notes.some((n) => n.id === note.id);
             setNotes((prev) => {
-              const exists = prev.find((n) => n.id === note.id);
-              if (exists) {
+              const found = prev.find((n) => n.id === note.id);
+              if (found) {
                 return prev.map((n) => (n.id === note.id ? note : n));
               }
               return [note, ...prev];
             });
+            if (!exists) setTotal((prev) => prev + 1);
             setSelectedNote(note);
             setModalOpen(true);
           } else {
-            setRetryCount((c) => c + 1);
+            reset();
           }
         }}
         onUndo={() => {
           setModalOpen(false);
-          setRetryCount((c) => c + 1);
+          reset();
         }}
         onSearch={(query) => {
           setSearchQuery(query);
