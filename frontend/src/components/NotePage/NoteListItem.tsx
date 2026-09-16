@@ -3,6 +3,7 @@ import type { Note } from "../../api/noteApi";
 
 interface NoteListItemProps {
   note: Note;
+  pending?: boolean;
   onClick: () => void;
   onToggleFavorite: (noteId: number, bookmarked: boolean) => void;
   onDelete: (noteId: number) => void;
@@ -12,7 +13,10 @@ interface NoteListItemProps {
   filter?: string;
 }
 
-const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, filter }: NoteListItemProps) => {
+const ACTION_BUTTON =
+  "transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+
+const NoteListItem = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, filter }: NoteListItemProps) => {
   return (
     <article
       onClick={onClick}
@@ -54,21 +58,23 @@ const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete, onArchive, on
         {filter === "trash" ? (
           <>
             <button
+              disabled={pending}
               onClick={(e) => {
                 e.stopPropagation();
                 onRestore?.(note.id);
               }}
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-primary`}
               title="Restore"
             >
               <Undo2 size={17} />
             </button>
             <button
+              disabled={pending}
               onClick={(e) => {
                 e.stopPropagation();
                 onPermanentDelete?.(note.id);
               }}
-              className="text-muted-foreground hover:text-red-400 transition-colors"
+              className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-red-400`}
               title="Delete permanently"
             >
               <X size={17} />
@@ -77,13 +83,14 @@ const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete, onArchive, on
         ) : (
           <>
             <button
+              disabled={pending}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleFavorite(note.id, note.bookmarked);
               }}
               className={`
-                text-muted-foreground hover:text-foreground
-                ${note.bookmarked ? "text-yellow-400" : ""}
+                ${ACTION_BUTTON}
+                ${note.bookmarked ? "text-yellow-400" : "text-muted-foreground enabled:hover:text-foreground"}
               `}
             >
               <Bookmark size={17} fill={note.bookmarked ? "currentColor" : "none"} />
@@ -91,11 +98,12 @@ const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete, onArchive, on
 
             {filter !== "archive" && onArchive && (
               <button
+                disabled={pending}
                 onClick={(e) => {
                   e.stopPropagation();
                   onArchive(note.id);
                 }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-foreground`}
                 title="Archive"
               >
                 <Archive size={17} />
@@ -104,11 +112,12 @@ const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete, onArchive, on
 
             {filter === "archive" && onArchive && (
               <button
+                disabled={pending}
                 onClick={(e) => {
                   e.stopPropagation();
                   onArchive(note.id);
                 }}
-                className="text-muted-foreground hover:text-primary transition-colors"
+                className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-primary`}
                 title="Unarchive"
               >
                 <ArchiveRestore size={17} />
@@ -116,11 +125,12 @@ const NoteListItem = ({ note, onClick, onToggleFavorite, onDelete, onArchive, on
             )}
 
             <button
+              disabled={pending}
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(note.id);
               }}
-              className="text-muted-foreground hover:text-red-400 transition-colors"
+              className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-red-400`}
               title="Move to trash"
             >
               <Trash2 size={17} />

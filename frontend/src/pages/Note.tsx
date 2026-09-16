@@ -16,6 +16,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useDebounce } from "../hooks/useDebounce";
 import { useInfiniteNotes } from "../hooks/useInfiniteNotes";
 import { useIntersectionObserver } from "../hooks/useIntersectionObserver";
+import { usePendingActions } from "../hooks/usePendingActions";
 import type { Note } from "../api/noteApi";
 
 const Note = () => {
@@ -45,89 +46,96 @@ const Note = () => {
     enabled: hasMore && !loadingMore && !error,
   });
 
+  const { isPending, run } = usePendingActions();
+
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(id);
   }, [toast]);
 
-  const handleToggleFavorite = async (noteId: number, bookmarked: boolean) => {
-    try {
-      setNotes((prev) =>
-        prev.map((n) => (n.id === noteId ? { ...n, bookmarked: !bookmarked } : n))
-      );
-      await updateNote(noteId, { bookmarked: !bookmarked });
-    } catch {
-      setNotes((prev) =>
-        prev.map((n) => (n.id === noteId ? { ...n, bookmarked } : n))
-      );
-    }
-  };
+  const handleToggleFavorite = (noteId: number, bookmarked: boolean) =>
+    run(noteId, async () => {
+      const nextBookmarked = !bookmarked;
+      try {
+        if (activeFilter === "bookmark" && !nextBookmarked) {
+          setNotes((prev) => prev.filter((n) => n.id !== noteId));
+          setTotal((prev) => Math.max(0, prev - 1));
+        } else {
+          setNotes((prev) =>
+            prev.map((n) => (n.id === noteId ? { ...n, bookmarked: nextBookmarked } : n))
+          );
+        }
+        await updateNote(noteId, { bookmarked: nextBookmarked });
+      } catch {
+        reset();
+      }
+    });
 
-  const handleDeleteNote = async (noteId: number) => {
-    try {
-      const noteTitle = notes.find((n) => n.id === noteId)?.title || "Note";
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      setTotal((prev) => Math.max(0, prev - 1));
-      await updateNote(noteId, { deletedAt: new Date().toISOString(), archived: false });
-      setToast({ message: `"${noteTitle}" moved to trash. You can restore it from Trash.`, type: "info" });
-    } catch {
-      reset();
-    }
-  };
-
-  const handleArchiveNote = async (noteId: number) => {
-    try {
-      const note = notes.find((n) => n.id === noteId);
-      if (!note) return;
-      const updated = await updateNote(noteId, { archived: !note.archived });
-      if (activeFilter === "all" || activeFilter === "archive") {
+  const handleDeleteNote = (noteId: number) =>
+    run(noteId, async () => {
+      try {
+        const noteTitle = notes.find((n) => n.id === noteId)?.title || "Note";
         setNotes((prev) => prev.filter((n) => n.id !== noteId));
         setTotal((prev) => Math.max(0, prev - 1));
-      } else {
-        setNotes((prev) => prev.map((n) => (n.id === noteId ? updated : n)));
+        await updateNote(noteId, { deletedAt: new Date().toISOString(), archived: false });
+        setToast({ message: `"${noteTitle}" moved to trash. You can restore it from Trash.`, type: "info" });
+      } catch {
+        reset();
       }
-      const noteTitle = note.title || "Note";
-      setToast({
-        message: updated.archived
-          ? `"${noteTitle}" archived`
-          : `"${noteTitle}" unarchived`,
-        type: "info",
-      });
-    } catch {
-      reset();
-    }
-  };
+    });
 
-  const handleRestoreNote = async (noteId: number) => {
-    try {
-      await updateNote(noteId, { deletedAt: null });
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      setTotal((prev) => Math.max(0, prev - 1));
-    } catch {
-      reset();
-    }
-  };
+  const handleArchiveNote = (noteId: number) =>
+    run(noteId, async () => {
+      const note = notes.find((n) => n.id === noteId);
+      if (!note) return;
+      const nextArchived = !note.archived;
+      try {
+        setNotes((prev) => prev.filter((n) => n.id !== noteId));
+        setTotal((prev) => Math.max(0, prev - 1));
+        await updateNote(noteId, { archived: nextArchived });
+        const noteTitle = note.title || "Note";
+        setToast({
+          message: nextArchived ? `"${noteTitle}" archived` : `"${noteTitle}" unarchived`,
+          type: "info",
+        });
+      } catch {
+        reset();
+      }
+    });
 
-  const handlePermanentDelete = async (noteId: number) => {
-    try {
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      setTotal((prev) => Math.max(0, prev - 1));
-      await permanentDeleteNote(noteId);
-    } catch {
-      reset();
-    }
-  };
+  const handleRestoreNote = (noteId: number) =>
+    run(noteId, async () => {
+      try {
+        await updateNote(noteId, { deletedAt: null });
+        setNotes((prev) => prev.filter((n) => n.id !== noteId));
+        setTotal((prev) => Math.max(0, prev - 1));
+      } catch {
+        reset();
+      }
+    });
 
-  const handleEmptyTrash = async () => {
-    try {
-      await emptyTrash();
-      setNotes([]);
-      setTotal(0);
-    } catch {
-      reset();
-    }
-  };
+  const handlePermanentDelete = (noteId: number) =>
+    run(noteId, async () => {
+      try {
+        setNotes((prev) => prev.filter((n) => n.id !== noteId));
+        setTotal((prev) => Math.max(0, prev - 1));
+        await permanentDeleteNote(noteId);
+      } catch {
+        reset();
+      }
+    });
+
+  const handleEmptyTrash = () =>
+    run("trash-all", async () => {
+      try {
+        await emptyTrash();
+        setNotes([]);
+        setTotal(0);
+      } catch {
+        reset();
+      }
+    });
 
   const handleOpenModal = (note: Note) => {
     setSelectedNote(note);
@@ -286,7 +294,8 @@ const Note = () => {
                 <div className="flex justify-end mb-4">
                   <button
                     onClick={handleEmptyTrash}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                    disabled={isPending("trash-all")}
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-red-400 enabled:hover:text-red-300 enabled:hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Empty trash
                   </button>
@@ -299,6 +308,7 @@ const Note = () => {
                     <NoteCard
                       key={note.id}
                       note={note}
+                      pending={isPending(note.id)}
                       onClick={() => handleOpenModal(note)}
                       onToggleFavorite={handleToggleFavorite}
                       onDelete={handleDeleteNote}
@@ -315,6 +325,7 @@ const Note = () => {
                     <NoteListItem
                       key={note.id}
                       note={note}
+                      pending={isPending(note.id)}
                       onClick={() => handleOpenModal(note)}
                       onToggleFavorite={handleToggleFavorite}
                       onDelete={handleDeleteNote}

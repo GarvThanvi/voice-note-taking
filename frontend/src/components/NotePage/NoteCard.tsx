@@ -3,6 +3,7 @@ import type { Note } from "../../api/noteApi";
 
 interface NoteCardProps {
   note: Note;
+  pending?: boolean;
   onClick: () => void;
   onToggleFavorite: (noteId: number, bookmarked: boolean) => void;
   onDelete: (noteId: number) => void;
@@ -12,7 +13,10 @@ interface NoteCardProps {
   filter?: string;
 }
 
-const NoteCard = ({ note, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, filter }: NoteCardProps) => {
+const ACTION_BUTTON =
+  "w-8 h-8 rounded-md flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+
+const NoteCard = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, filter }: NoteCardProps) => {
   return (
     <article
       onClick={onClick}
@@ -57,21 +61,23 @@ const NoteCard = ({ note, onClick, onToggleFavorite, onDelete, onArchive, onRest
             {filter === "trash" ? (
               <>
                 <button
+                  disabled={pending}
                   onClick={(e) => {
                     e.stopPropagation();
                     onRestore?.(note.id);
                   }}
-                  className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                  className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-primary enabled:hover:bg-primary/10`}
                   title="Restore"
                 >
                   <Undo2 size={17} />
                 </button>
                 <button
+                  disabled={pending}
                   onClick={(e) => {
                     e.stopPropagation();
                     onPermanentDelete?.(note.id);
                   }}
-                  className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-red-400 enabled:hover:bg-red-500/10`}
                   title="Delete permanently"
                 >
                   <X size={17} />
@@ -80,13 +86,14 @@ const NoteCard = ({ note, onClick, onToggleFavorite, onDelete, onArchive, onRest
             ) : (
               <>
                 <button
+                  disabled={pending}
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleFavorite(note.id, note.bookmarked);
                   }}
                   className={`
-                    w-8 h-8 rounded-md flex items-center justify-center transition-colors
-                    ${note.bookmarked ? "text-yellow-400" : "text-muted-foreground hover:text-foreground"}
+                    ${ACTION_BUTTON}
+                    ${note.bookmarked ? "text-yellow-400" : "text-muted-foreground enabled:hover:text-foreground"}
                   `}
                 >
                   <Bookmark size={17} fill={note.bookmarked ? "currentColor" : "none"} />
@@ -94,11 +101,12 @@ const NoteCard = ({ note, onClick, onToggleFavorite, onDelete, onArchive, onRest
 
                 {filter !== "archive" && onArchive && (
                   <button
+                    disabled={pending}
                     onClick={(e) => {
                       e.stopPropagation();
                       onArchive(note.id);
                     }}
-                    className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface transition-colors"
+                    className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-foreground enabled:hover:bg-surface`}
                     title="Archive"
                   >
                     <Archive size={17} />
@@ -107,11 +115,12 @@ const NoteCard = ({ note, onClick, onToggleFavorite, onDelete, onArchive, onRest
 
                 {filter === "archive" && onArchive && (
                   <button
+                    disabled={pending}
                     onClick={(e) => {
                       e.stopPropagation();
                       onArchive(note.id);
                     }}
-                    className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-primary enabled:hover:bg-primary/10`}
                     title="Unarchive"
                   >
                     <ArchiveRestore size={17} />
@@ -119,11 +128,12 @@ const NoteCard = ({ note, onClick, onToggleFavorite, onDelete, onArchive, onRest
                 )}
 
                 <button
+                  disabled={pending}
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(note.id);
                   }}
-                  className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  className={`${ACTION_BUTTON} text-muted-foreground enabled:hover:text-red-400 enabled:hover:bg-red-500/10`}
                   title="Move to trash"
                 >
                   <Trash2 size={17} />
