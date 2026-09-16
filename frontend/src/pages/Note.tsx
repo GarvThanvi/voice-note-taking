@@ -26,6 +26,7 @@ const Note = () => {
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [newNoteKey, setNewNoteKey] = useState(0);
   const [activeFilter, setActiveFilter] = useState("all");
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
@@ -144,6 +145,7 @@ const Note = () => {
 
   const handleNewNote = () => {
     setSelectedNote(null);
+    setNewNoteKey((key) => key + 1);
     setModalOpen(true);
   };
 
@@ -353,7 +355,7 @@ const Note = () => {
       </main>
 
       <NoteModal
-        key={selectedNote?.id ?? "new"}
+        key={selectedNote?.id ?? `new-${newNoteKey}`}
         isOpen={modalOpen}
         note={selectedNote}
         onClose={() => setModalOpen(false)}
