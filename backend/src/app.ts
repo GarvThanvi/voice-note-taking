@@ -179,7 +179,11 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
 app.get("/api/note", authMiddleware, async (req, res) => {
   try {
     const userId: number = req.userId!;
-    const { bookmarked, search, archived, trashed } = req.query;
+    const { bookmarked, search, archived, trashed, page: pageParam, limit: limitParam } = req.query;
+
+    const page = Math.max(1, Number(pageParam) || 1);
+    const limit = Math.min(50, Math.max(1, Number(limitParam) || 12));
+    const skip = (page - 1) * limit;
 
     const where: any = { userId };
 
@@ -206,16 +210,16 @@ app.get("/api/note", authMiddleware, async (req, res) => {
       ];
     }
 
-    const notes = await prisma.note.findMany({
-      where,
-      include: { todos: true },
-    });
-
-    if (notes.length <= 0) {
-      return res
-        .status(200)
-        .json({ success: true, message: "User does not have any notes" });
-    }
+    const [notes, total] = await Promise.all([
+      prisma.note.findMany({
+        where,
+        include: { todos: true },
+        orderBy: { updatedAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.note.count({ where }),
+    ]);
 
     const formattedNotes = notes.map((note) => {
       if (note.type === "PARAGRAPH") {
@@ -250,7 +254,12 @@ app.get("/api/note", authMiddleware, async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: formattedNotes,
+      message: {
+        notes: formattedNotes,
+        total,
+        page,
+        hasMore: page * limit < total,
+      },
     });
   } catch (error) {
     console.error("Error while fetching all notes for a user ", error);
