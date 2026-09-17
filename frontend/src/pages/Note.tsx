@@ -7,6 +7,7 @@ import NoteModal from "../components/NotePage/NoteModal";
 import NoteSkeleton from "../components/NotePage/NoteSkeleton";
 import NoteEndIndicator from "../components/NotePage/NoteEndIndicator";
 import VoiceControl from "../components/NotePage/VoiceControl";
+import ConfirmModal from "../components/ui/ConfirmModal";
 import {
   updateNote,
   permanentDeleteNote,
@@ -28,6 +29,7 @@ const Note = () => {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [newNoteKey, setNewNoteKey] = useState(0);
   const [activeFilter, setActiveFilter] = useState("all");
+  const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
   const {
@@ -295,7 +297,7 @@ const Note = () => {
               {activeFilter === "trash" && (
                 <div className="flex justify-end mb-4">
                   <button
-                    onClick={handleEmptyTrash}
+                    onClick={() => setConfirmEmptyTrash(true)}
                     disabled={isPending("trash-all")}
                     className="px-4 py-2 rounded-lg text-sm font-medium text-red-400 enabled:hover:text-red-300 enabled:hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
@@ -390,6 +392,19 @@ const Note = () => {
         onSearch={(query) => {
           setSearchQuery(query);
         }}
+      />
+
+      <ConfirmModal
+        isOpen={confirmEmptyTrash}
+        title="Empty trash"
+        message="Permanently delete all notes in Trash? This cannot be undone."
+        confirmLabel="Empty trash"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setConfirmEmptyTrash(false);
+          handleEmptyTrash();
+        }}
+        onCancel={() => setConfirmEmptyTrash(false)}
       />
 
       {toast && (
