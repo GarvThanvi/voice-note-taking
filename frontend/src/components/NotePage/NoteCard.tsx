@@ -46,7 +46,15 @@ const NoteCard = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchiv
 
       <div className="mt-3 text-sm text-muted leading-6 whitespace-pre-line line-clamp-5">
         {note.type === "CHECKBOX" && note.todos
-          ? note.todos.map((todo) => `${todo.done ? "✓" : "□"} ${todo.text}`).join("\n")
+          ? note.todos.map((todo, index) => (
+              <span
+                key={todo.id}
+                className={todo.done ? "line-through text-muted-foreground" : ""}
+              >
+                {index > 0 ? "\n" : ""}
+                {todo.text}
+              </span>
+            ))
           : note.content}
       </div>
 

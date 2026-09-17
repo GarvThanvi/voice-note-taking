@@ -429,15 +429,37 @@ app.put("/api/note/:noteId", authMiddleware, async (req, res) => {
       });
 
       if (todos !== undefined) {
-        await tx.todo.deleteMany({ where: { noteId } });
-        if (todos.length > 0) {
-          await tx.todo.createMany({
-            data: todos.map((text, index) => ({
-              noteId,
-              text,
-              order: index,
-            })),
-          });
+        const existingTodos = await tx.todo.findMany({
+          where: { noteId },
+          orderBy: { order: "asc" },
+        });
+
+        const incomingIds = todos
+          .map((todo) => todo.id)
+          .filter((id): id is number => id !== undefined);
+
+        const idsToDelete = existingTodos
+          .filter((todo) => !incomingIds.includes(todo.id))
+          .map((todo) => todo.id);
+
+        if (idsToDelete.length > 0) {
+          await tx.todo.deleteMany({ where: { id: { in: idsToDelete } } });
+        }
+
+        for (let index = 0; index < todos.length; index++) {
+          const todo = todos[index]!;
+          const done = todo.done ?? false;
+
+          if (todo.id !== undefined) {
+            await tx.todo.updateMany({
+              where: { id: todo.id, noteId },
+              data: { text: todo.text, done, order: index },
+            });
+          } else {
+            await tx.todo.create({
+              data: { noteId, text: todo.text, done, order: index },
+            });
+          }
         }
       }
 

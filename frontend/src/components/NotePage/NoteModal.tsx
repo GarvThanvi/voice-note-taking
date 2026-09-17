@@ -26,6 +26,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
   const [saving, setSaving] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const savingRef = useRef(false);
+  const todosDirtyRef = useRef(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -51,6 +52,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
+    const todosDirtyAtSave = todosDirtyRef.current;
     try {
       const t = overrides.title ?? title;
       const c = overrides.content ?? content;
@@ -59,10 +61,26 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
 
       const payload =
         nt === "CHECKBOX"
-          ? { title: t, type: nt, todos: tl.map((td) => td.text), content: "" }
+          ? {
+              title: t,
+              type: nt,
+              todos: tl.map((td) => ({ id: td.id, text: td.text, done: td.done })),
+              content: "",
+            }
           : { title: t, type: nt, content: c, todos: [] };
 
       const updated = await updateNote(note.id, payload);
+
+      if (
+        nt === "CHECKBOX" &&
+        updated.todos &&
+        todosDirtyRef.current === todosDirtyAtSave
+      ) {
+        setTodos(
+          updated.todos.map((td) => ({ id: td.id, text: td.text, done: td.done }))
+        );
+      }
+
       onNoteUpdated(updated);
     } catch {
       // silent
@@ -70,7 +88,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
       savingRef.current = false;
       setSaving(false);
     }
-  }, 2000);
+  }, 400);
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
@@ -87,6 +105,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
   };
 
   const handleTodosChange = (newTodos: { text: string; done: boolean; id?: number }[]) => {
+    todosDirtyRef.current += 1;
     setTodos(newTodos);
     if (isEdit && noteType === "CHECKBOX") {
       debouncedSave({ todos: newTodos });
@@ -124,6 +143,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
     const newDone = !todo.done;
     const updated = [...todos];
     updated[index] = { ...updated[index], done: newDone };
+    todosDirtyRef.current += 1;
     setTodos(updated);
 
     try {
@@ -176,20 +196,26 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
 
   const handleTypeToggle = (newType: "PARAGRAPH" | "CHECKBOX") => {
     if (newType === noteType) return;
+    todosDirtyRef.current += 1;
     setNoteType(newType);
+
+    let nextTodos = todos;
     if (newType === "CHECKBOX" && content.trim()) {
       const lines = content.split("\n").filter((l) => l.trim());
-      setTodos(lines.map((text) => ({ text, done: false })));
+      nextTodos = lines.map((text) => ({ text, done: false }));
+      setTodos(nextTodos);
       setContent("");
     } else if (newType === "PARAGRAPH" && todos.length > 0) {
       setContent(todos.map((t) => t.text).join("\n"));
       setTodos([]);
+      nextTodos = [];
     }
+
     if (isEdit) {
       debouncedSave({
         noteType: newType,
         content: newType === "PARAGRAPH" ? content : "",
-        todos: newType === "CHECKBOX" ? todos : [],
+        todos: nextTodos,
       });
     }
   };
@@ -283,7 +309,9 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
                     onChange={(e) => handleTodoTextChange(index, e.target.value)}
                     onKeyDown={(e) => handleTodoKeyDown(e, index)}
                     placeholder="New item"
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    className={`flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground ${
+                      todo.done ? "line-through text-muted-foreground" : ""
+                    }`}
                   />
                   {todos.length > 1 && (
                     <button

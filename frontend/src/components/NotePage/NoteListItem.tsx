@@ -44,7 +44,15 @@ const NoteListItem = ({ note, pending, onClick, onToggleFavorite, onDelete, onAr
         </h2>
         <p className="text-sm text-muted mt-1 truncate">
           {note.type === "CHECKBOX" && note.todos
-            ? note.todos.map((todo) => `${todo.done ? "✓" : "□"} ${todo.text}`).join(" ")
+            ? note.todos.map((todo, index) => (
+                <span
+                  key={todo.id}
+                  className={todo.done ? "line-through text-muted-foreground" : ""}
+                >
+                  {index > 0 ? " " : ""}
+                  {todo.text}
+                </span>
+              ))
             : (note.content || "").replace(/\n/g, " ")}
         </p>
       </div>

@@ -38,6 +38,12 @@ interface CreateNoteData {
   todos?: string[];
 }
 
+interface TodoUpdateData {
+  id?: number;
+  text: string;
+  done: boolean;
+}
+
 interface UpdateNoteData {
   title?: string;
   type?: "PARAGRAPH" | "CHECKBOX";
@@ -45,7 +51,7 @@ interface UpdateNoteData {
   archived?: boolean;
   deletedAt?: string | null;
   bookmarked?: boolean;
-  todos?: string[];
+  todos?: TodoUpdateData[];
 }
 
 export const getNotes = async (
