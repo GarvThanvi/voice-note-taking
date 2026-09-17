@@ -245,7 +245,7 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone, onUndo, onSearch }
   return (
     <>
       {phase !== "idle" && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]">
+        <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-[100] max-w-[calc(100%-2rem)]">
           <div className="flex items-center gap-3 rounded-full border border-primary/30 bg-surface px-5 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
             {phase === "listening" ? (
               <>
@@ -267,7 +267,7 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone, onUndo, onSearch }
       )}
 
       {toast && phase === "idle" && (
-        <div className="fixed top-20 right-6 z-[100] w-[380px] animate-in slide-in-from-right">
+        <div className="fixed top-20 right-4 left-4 sm:left-auto sm:right-6 z-[100] w-auto sm:w-[380px] animate-in slide-in-from-right">
           <div
             className={`
               rounded-2xl border p-4 shadow-2xl bg-surface
@@ -344,7 +344,7 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone, onUndo, onSearch }
       )}
 
       {phase === "idle" && (
-        <div className="fixed bottom-8 right-8 z-[100]">
+        <div className="fixed bottom-6 right-5 sm:bottom-8 sm:right-8 z-[100]">
           <button
             onMouseDown={(e) => {
               e.preventDefault();

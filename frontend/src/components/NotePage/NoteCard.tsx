@@ -23,12 +23,14 @@ const NoteCard = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchiv
       className="
         group
         relative
-        min-h-[235px]
+        min-h-[200px]
+        sm:min-h-[235px]
         rounded-xl
         border
         border-border
         bg-surface
-        p-5
+        p-4
+        sm:p-5
         flex
         flex-col
         cursor-pointer

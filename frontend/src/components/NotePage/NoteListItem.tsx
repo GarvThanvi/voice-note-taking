@@ -14,7 +14,7 @@ interface NoteListItemProps {
 }
 
 const ACTION_BUTTON =
-  "transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+  "w-8 h-8 rounded-md flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
 
 const NoteListItem = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, filter }: NoteListItemProps) => {
   return (
@@ -24,8 +24,10 @@ const NoteListItem = ({ note, pending, onClick, onToggleFavorite, onDelete, onAr
         group
         flex
         items-center
-        gap-5
-        p-5
+        gap-3
+        sm:gap-5
+        p-3
+        sm:p-5
         rounded-xl
         border
         border-border
@@ -47,8 +49,8 @@ const NoteListItem = ({ note, pending, onClick, onToggleFavorite, onDelete, onAr
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-muted-foreground w-[100px] text-right">
+      <div className="flex items-center gap-1 sm:gap-3">
+        <span className="hidden sm:inline-block text-xs text-muted-foreground w-[100px] text-right">
           {new Date(note.updatedAt).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",

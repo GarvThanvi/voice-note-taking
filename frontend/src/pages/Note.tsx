@@ -1,4 +1,4 @@
-import { Search, Moon, Sun, Grid2X2, List, Info } from "lucide-react";
+import { Search, Moon, Sun, Grid2X2, List, Info, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import Sidebar from "../components/NotePage/Sidebar";
 import NoteCard from "../components/NotePage/NoteCard";
@@ -29,6 +29,7 @@ const Note = () => {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [newNoteKey, setNewNoteKey] = useState(0);
   const [activeFilter, setActiveFilter] = useState("all");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
@@ -184,11 +185,21 @@ const Note = () => {
         onNewNote={handleNewNote}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <main className="flex-1 min-w-0">
-        <div className="max-w-[1500px] mx-auto px-8 py-5">
-          <header className="flex items-center gap-5 mb-8">
+        <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
+          <header className="flex items-center gap-3 sm:gap-5 mb-6 sm:mb-8">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden shrink-0 w-10 h-10 -ml-1 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface transition-colors"
+              aria-label="Open navigation"
+            >
+              <Menu size={20} />
+            </button>
+
             <div className="relative flex-1 max-w-[640px]">
               <Search
                 size={18}
@@ -207,7 +218,7 @@ const Note = () => {
                   border-border
                   rounded-lg
                   pl-11
-                  pr-16
+                  pr-4
                   text-sm
                   text-foreground
                   placeholder:text-muted-foreground
@@ -230,9 +241,9 @@ const Note = () => {
             </div>
           </header>
 
-          <div className="flex items-end justify-between mb-6">
+          <div className="flex items-end justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-[28px] font-semibold tracking-[-0.7px]">
+              <h1 className="text-2xl sm:text-[28px] font-semibold tracking-[-0.7px]">
                 {pageTitle}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
@@ -264,7 +275,7 @@ const Note = () => {
 
           {initialLoading ? (
             view === "grid" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                 <NoteSkeleton variant="grid" count={8} />
               </div>
             ) : (
@@ -307,7 +318,7 @@ const Note = () => {
               )}
 
               {view === "grid" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                   {notes.map((note) => (
                     <NoteCard
                       key={note.id}

@@ -200,8 +200,8 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl max-h-[85vh] bg-background border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="relative w-[calc(100%-1.5rem)] sm:w-full max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-background border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
           <input
             ref={titleRef}
             type="text"
@@ -220,7 +220,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
           </div>
         </div>
 
-        <div className="px-6 py-3 border-b border-border flex items-center gap-2">
+        <div className="px-4 sm:px-6 py-3 border-b border-border flex items-center gap-2">
           <button
             onClick={() => handleTypeToggle("PARAGRAPH")}
             className={`
@@ -249,13 +249,13 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
           </button>
         </div>
 
-        <div className="flex-1 min-h-[340px] overflow-y-auto px-6 py-4">
+        <div className="flex-1 min-h-[200px] sm:min-h-[340px] overflow-y-auto px-4 sm:px-6 py-4">
           {noteType === "PARAGRAPH" ? (
             <textarea
               value={content}
               onChange={(e) => handleContentChange(e.target.value)}
               placeholder="Start writing..."
-              className="w-full h-full min-h-[300px] bg-transparent text-sm text-foreground leading-relaxed outline-none resize-none placeholder:text-muted-foreground"
+              className="w-full h-full min-h-[180px] sm:min-h-[300px] bg-transparent text-sm text-foreground leading-relaxed outline-none resize-none placeholder:text-muted-foreground"
             />
           ) : (
             <div className="space-y-1">
@@ -292,7 +292,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
                         updated.splice(index, 1);
                         handleTodosChange(updated);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-400 transition-all"
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-400 transition-all"
                     >
                       <X size={14} />
                     </button>
@@ -309,7 +309,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
           )}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-4 border-t border-border">
           {isEdit ? (
             <div className="flex items-center gap-2">
               <button
