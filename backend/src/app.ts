@@ -213,7 +213,7 @@ app.get("/api/note", authMiddleware, async (req, res) => {
     const [notes, total] = await Promise.all([
       prisma.note.findMany({
         where,
-        include: { todos: true },
+        include: { todos: { orderBy: { order: "asc" } } },
         orderBy: { updatedAt: "desc" },
         skip,
         take: limit,

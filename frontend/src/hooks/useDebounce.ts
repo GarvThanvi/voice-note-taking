@@ -11,25 +11,63 @@ export function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
-  callback: T,
+export interface DebouncedCallback<A extends unknown[]> {
+  run: (...args: A) => void;
+  flush: () => void;
+  cancel: () => void;
+}
+
+export function useDebouncedCallback<A extends unknown[]>(
+  callback: (...args: A) => void,
   delay: number
-): T {
+): DebouncedCallback<A> {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(callback);
-  callbackRef.current = callback;
+  const lastArgsRef = useRef<A | null>(null);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  const cancel = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    lastArgsRef.current = null;
+  }, []);
+
+  const flush = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    const args = lastArgsRef.current;
+    if (!args) return;
+    lastArgsRef.current = null;
+    callbackRef.current(...args);
+  }, []);
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      flush();
     };
-  }, []);
+  }, [flush]);
 
-  return useCallback(
-    (...args: Parameters<T>) => {
+  const run = useCallback(
+    (...args: A) => {
+      lastArgsRef.current = args;
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => callbackRef.current(...args), delay);
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        const pending = lastArgsRef.current;
+        if (!pending) return;
+        lastArgsRef.current = null;
+        callbackRef.current(...pending);
+      }, delay);
     },
     [delay]
-  ) as T;
+  );
+
+  return { run, flush, cancel };
 }
