@@ -7,7 +7,7 @@ import NoteModal from "../components/NotePage/NoteModal";
 import NoteSkeleton from "../components/NotePage/NoteSkeleton";
 import NoteEndIndicator from "../components/NotePage/NoteEndIndicator";
 import VoiceControl from "../components/NotePage/VoiceControl";
-import VoiceGuideModal from "../components/NotePage/VoiceGuideModal";
+import VoiceGuideModal from "../components/NotePage/VoiceGuide/VoiceGuideModal";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import {
   updateNote,
