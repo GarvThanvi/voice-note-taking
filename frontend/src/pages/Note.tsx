@@ -1,5 +1,5 @@
 import { Search, Moon, Sun, Grid2X2, List, Info, Menu } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "../components/NotePage/Sidebar";
 import NoteCard from "../components/NotePage/NoteCard";
 import NoteListItem from "../components/NotePage/NoteListItem";
@@ -7,12 +7,15 @@ import NoteModal from "../components/NotePage/NoteModal";
 import NoteSkeleton from "../components/NotePage/NoteSkeleton";
 import NoteEndIndicator from "../components/NotePage/NoteEndIndicator";
 import VoiceControl from "../components/NotePage/VoiceControl";
+import VoiceGuideModal from "../components/NotePage/VoiceGuideModal";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import {
   updateNote,
   permanentDeleteNote,
   emptyTrash,
 } from "../api/noteApi";
+import { updateGuidePreferences } from "../api/authApi";
+import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useDebounce } from "../hooks/useDebounce";
 import { useInfiniteNotes } from "../hooks/useInfiniteNotes";
@@ -22,6 +25,7 @@ import type { Note as NoteType } from "../api/noteApi";
 
 const Note = () => {
   const { theme, toggleTheme } = useTheme();
+  const { user, guideRequested, clearGuideRequest, setUser } = useAuth();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -31,6 +35,8 @@ const Note = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideShowNextLogin, setGuideShowNextLogin] = useState<boolean | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
   const {
@@ -51,6 +57,28 @@ const Note = () => {
   });
 
   const { isPending, run } = usePendingActions();
+
+  const defaultGuideShowOnLogin = user?.hasSeenGuide
+    ? Boolean(user.showGuideOnLogin)
+    : true;
+  const guideIsOpen = guideOpen || guideRequested;
+  const showOnNextLogin = guideShowNextLogin ?? defaultGuideShowOnLogin;
+
+  const handleGuideClose = useCallback(() => {
+    setGuideOpen(false);
+    setGuideShowNextLogin(null);
+    clearGuideRequest();
+    updateGuidePreferences({
+      hasSeenGuide: true,
+      showGuideOnLogin: showOnNextLogin,
+    })
+      .then((data) => {
+        if (data?.success && data.user) {
+          setUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, [showOnNextLogin, clearGuideRequest, setUser]);
 
   useEffect(() => {
     if (!toast) return;
@@ -233,8 +261,17 @@ const Note = () => {
 
             <div className="ml-auto flex items-center gap-5">
               <button
+                onClick={() => setGuideOpen(true)}
+                className="text-muted hover:text-foreground transition-colors"
+                aria-label="How it works"
+                title="How it works"
+              >
+                <Info size={19} />
+              </button>
+              <button
                 onClick={toggleTheme}
                 className="text-muted hover:text-foreground transition-colors"
+                aria-label="Toggle theme"
               >
                 {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
               </button>
@@ -403,6 +440,13 @@ const Note = () => {
         onSearch={(query) => {
           setSearchQuery(query);
         }}
+      />
+
+      <VoiceGuideModal
+        isOpen={guideIsOpen}
+        onClose={handleGuideClose}
+        showOnNextLogin={showOnNextLogin}
+        onShowOnNextLoginChange={setGuideShowNextLogin}
       />
 
       <ConfirmModal

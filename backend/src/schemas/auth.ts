@@ -51,3 +51,10 @@ export const resetPasswordSchema = z.object({
 });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+export const guidePreferencesSchema = z.object({
+  hasSeenGuide: z.boolean().optional(),
+  showGuideOnLogin: z.boolean().optional(),
+});
+
+export type GuidePreferencesInput = z.infer<typeof guidePreferencesSchema>;

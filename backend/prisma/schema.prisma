@@ -18,6 +18,8 @@ model User {
   updatedAt      DateTime @updatedAt
   notes          Note[]
   passwordResetOtps PasswordResetOtp[]
+  hasSeenGuide     Boolean  @default(false)
+  showGuideOnLogin Boolean  @default(false)
 }
 
 model Note {

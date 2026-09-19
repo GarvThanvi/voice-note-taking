@@ -33,6 +33,14 @@ export const googleRedirect = async () => {
   return response.data;
 };
 
+export const updateGuidePreferences = async (data: {
+  hasSeenGuide?: boolean;
+  showGuideOnLogin?: boolean;
+}) => {
+  const response = await api.put("/auth/guide", data);
+  return response.data;
+};
+
 export const forgotPassword = async (email: string) => {
   const response = await api.post("/auth/forgot-password", { email });
   return response.data;

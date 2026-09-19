@@ -20,7 +20,7 @@ interface AuthFormProps {
 
 const AuthForm = ({ mode, onModeChange, onForgotPassword }: AuthFormProps) => {
   const isLogin = mode === "login";
-  const { setUser } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
@@ -67,8 +67,7 @@ const AuthForm = ({ mode, onModeChange, onForgotPassword }: AuthFormProps) => {
 
         const data = await signupUser({ email, password, username });
         if (data.success) {
-          setUser(data.user);
-          localStorage.setItem("token", data.token);
+          login(data.token, data.user);
           navigate("/note");
         } else {
           setErrorMessage(data.message || "Failed to login. Try again");
@@ -100,8 +99,7 @@ const AuthForm = ({ mode, onModeChange, onForgotPassword }: AuthFormProps) => {
 
       const data = await loginUser({ email, password });
       if (data.success) {
-        setUser(data.user);
-        localStorage.setItem("token", data.token);
+        login(data.token, data.user);
         navigate(location.state?.from?.pathname || "/note", { replace: true });
       } else {
         setErrorMessage(data.message || "Failed to login. Try again");

@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { getCurrentUser } from "../api/authApi";
+import { useAuth } from "../context/AuthContext";
 
 const GoogleSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -12,9 +15,23 @@ const GoogleSuccess = () => {
       navigate("/signin");
       return;
     }
-    localStorage.setItem("token", token);
-    navigate("/note", { replace: true });
-  }, [searchParams, navigate]);
+
+    const complete = async () => {
+      try {
+        const response = await getCurrentUser(token);
+        if (response.success) {
+          login(token, response.user);
+          navigate("/note", { replace: true });
+        } else {
+          navigate("/signin");
+        }
+      } catch {
+        navigate("/signin");
+      }
+    };
+
+    complete();
+  }, [searchParams, navigate, login]);
 
   return (
     <>

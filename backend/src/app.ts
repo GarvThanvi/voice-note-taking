@@ -22,6 +22,7 @@ import { google } from "googleapis";
 import voiceRoutes from "./routes/voice.js";
 import voiceUndoRoutes from "./routes/voiceUndo.js";
 import passwordResetRoutes from "./routes/passwordReset.js";
+import guideRoutes from "./routes/guide.js";
 
 const PORT = process.env.PORT;
 const app = express();
@@ -70,6 +71,8 @@ app.post("/api/auth/signup", async (req, res) => {
         id: newUser.id,
         username: newUser.username,
         email: newUser.email,
+        hasSeenGuide: newUser.hasSeenGuide,
+        showGuideOnLogin: newUser.showGuideOnLogin,
       },
     });
   } catch (error) {
@@ -131,6 +134,8 @@ app.post("/api/auth/signin", async (req, res) => {
         username: user.username,
         email: user.email,
         profilePicture: user.profilePicture,
+        hasSeenGuide: user.hasSeenGuide,
+        showGuideOnLogin: user.showGuideOnLogin,
       },
     });
   } catch (error) {
@@ -155,7 +160,14 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, username: true, email: true, profilePicture: true },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        profilePicture: true,
+        hasSeenGuide: true,
+        showGuideOnLogin: true,
+      },
     });
 
     if (!user) {
@@ -701,6 +713,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
 });
 
 app.use("/api/auth", passwordResetRoutes);
+app.use("/api/auth", guideRoutes);
 app.use("/api/voice", voiceRoutes);
 app.use("/api/voice", voiceUndoRoutes);
 
