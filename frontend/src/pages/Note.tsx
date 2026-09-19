@@ -18,7 +18,7 @@ import { useDebounce } from "../hooks/useDebounce";
 import { useInfiniteNotes } from "../hooks/useInfiniteNotes";
 import { useIntersectionObserver } from "../hooks/useIntersectionObserver";
 import { usePendingActions } from "../hooks/usePendingActions";
-import type { Note } from "../api/noteApi";
+import type { Note as NoteType } from "../api/noteApi";
 
 const Note = () => {
   const { theme, toggleTheme } = useTheme();
@@ -26,7 +26,7 @@ const Note = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [selectedNote, setSelectedNote] = useState<NoteType | null>(null);
   const [newNoteKey, setNewNoteKey] = useState(0);
   const [activeFilter, setActiveFilter] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -141,7 +141,7 @@ const Note = () => {
       }
     });
 
-  const handleOpenModal = (note: Note) => {
+  const handleOpenModal = (note: NoteType) => {
     setSelectedNote(note);
     setModalOpen(true);
   };
@@ -152,7 +152,7 @@ const Note = () => {
     setModalOpen(true);
   };
 
-  const handleNoteCreated = (note: Note) => {
+  const handleNoteCreated = (note: NoteType) => {
     if (activeFilter === "all") {
       setNotes((prev) => [note, ...prev]);
       setTotal((prev) => prev + 1);
@@ -160,7 +160,7 @@ const Note = () => {
     setModalOpen(false);
   };
 
-  const handleNoteUpdated = (updated: Note) => {
+  const handleNoteUpdated = (updated: NoteType) => {
     setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
   };
 

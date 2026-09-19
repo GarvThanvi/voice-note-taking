@@ -5,7 +5,7 @@ import Button from "../ui/Button";
 import AuthInput from "./AuthInput";
 import AuthDivider from "./AuthDivider";
 import GoogleButton from "./GoogleButton";
-import { googleRedirect, loginUser, signupUser } from "../../api/authApi";
+import { loginUser, signupUser } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
@@ -15,9 +15,10 @@ export type AuthMode = "login" | "signup";
 interface AuthFormProps {
   mode: AuthMode;
   onModeChange: (mode: AuthMode) => void;
+  onForgotPassword?: () => void;
 }
 
-const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
+const AuthForm = ({ mode, onModeChange, onForgotPassword }: AuthFormProps) => {
   const isLogin = mode === "login";
   const { setUser } = useAuth();
   const navigate = useNavigate();
@@ -206,6 +207,7 @@ const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           <div className="-mt-2 flex justify-end">
             <button
               type="button"
+              onClick={onForgotPassword}
               className="
                 text-xs
                 text-primary

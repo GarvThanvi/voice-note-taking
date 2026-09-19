@@ -1,9 +1,11 @@
 import { useState } from "react";
 import Container from "../components/ui/Container";
 import AuthForm, { type AuthMode } from "../components/LoginSignup/AuthForm";
+import ForgotPassword from "../components/LoginSignup/ForgotPassword";
 
 const LoginSignup = () => {
-const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [forgotPassword, setForgotPassword] = useState(false);
 
   return (
     <main
@@ -120,7 +122,15 @@ const [mode, setMode] = useState<AuthMode>("login");
                 </div> */}
 
                 {/* Form */}
-                <AuthForm mode={mode} onModeChange={setMode} />
+                {forgotPassword ? (
+                  <ForgotPassword onBackToLogin={() => setForgotPassword(false)} />
+                ) : (
+                  <AuthForm
+                    mode={mode}
+                    onModeChange={setMode}
+                    onForgotPassword={() => setForgotPassword(true)}
+                  />
+                )}
               </div>
             </div>
           </div>

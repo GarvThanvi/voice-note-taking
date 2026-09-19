@@ -17,6 +17,7 @@ model User {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   notes          Note[]
+  passwordResetOtps PasswordResetOtp[]
 }
 
 model Note {
@@ -52,4 +53,16 @@ model Todo {
 enum NoteType {
   CHECKBOX
   PARAGRAPH
+}
+
+model PasswordResetOtp {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

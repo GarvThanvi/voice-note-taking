@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { HashLink, NavHashLink } from "react-router-hash-link";
+import { HashLink } from "react-router-hash-link";
 import { AudioWaveform } from "lucide-react";
 import { motion } from "framer-motion";
 import Container from "./ui/Container";
