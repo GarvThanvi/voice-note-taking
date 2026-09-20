@@ -107,20 +107,21 @@
 }
 
 .light {
-  --color-background: #ffffff;
-  --color-surface: #f8f9fa;
+  --color-background: #f5f6f8;
+  --color-surface: #ffffff;
   --color-surface-elevated: #ffffff;
 
-  --color-border: #e2e5e9;
-  --color-border-subtle: #edf0f3;
+  --color-border: #d9dde3;
+  --color-border-subtle: #e7e9ed;
 
-  --color-foreground: #1a1d21;
-  --color-muted: #5f6368;
-  --color-muted-foreground: #9aa0a6;
+  --color-foreground: #17191d;
+  --color-muted: #4b5563;
+  --color-muted-foreground: #737b87;
 
+  
   --color-primary: #ff4058;
   --color-primary-hover: #ff5870;
-  --color-primary-dark: #b91f38;
+  --color-primary-dark: #d92f46;
   --color-primary-soft: #ff7184;
 }
 
