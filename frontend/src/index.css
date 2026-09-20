@@ -48,6 +48,10 @@
   --animate-breathe: breathe 3.2s ease-in-out infinite;
   --animate-ring-pulse: ring-pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
   --animate-auth-enter: auth-enter 300ms ease-out;
+  --animate-voice-eq: voice-eq 1s ease-in-out infinite;
+  --animate-voice-drift: voice-drift 9s ease-in-out infinite;
+  --animate-voice-drift-slow: voice-drift-slow 13s ease-in-out infinite;
+  --animate-voice-hud-enter: voice-hud-enter 220ms ease-out;
 
   @keyframes auth-enter {
     from {
@@ -104,6 +108,47 @@
       opacity: 0;
     }
   }
+
+  @keyframes voice-eq {
+    0%,
+    100% {
+      transform: scaleY(0.35);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes voice-drift {
+    0%,
+    100% {
+      transform: translateX(-4%) scaleY(1);
+    }
+    50% {
+      transform: translateX(4%) scaleY(1.12);
+    }
+  }
+
+  @keyframes voice-drift-slow {
+    0%,
+    100% {
+      transform: translateX(5%) scaleY(1.08);
+    }
+    50% {
+      transform: translateX(-5%) scaleY(0.95);
+    }
+  }
+
+  @keyframes voice-hud-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 .light {
@@ -123,6 +168,10 @@
   --color-primary-hover: #ff5870;
   --color-primary-dark: #d92f46;
   --color-primary-soft: #ff7184;
+}
+
+.light .voice-glow {
+  opacity: 0.45;
 }
 
 .light ::-webkit-scrollbar-thumb {
