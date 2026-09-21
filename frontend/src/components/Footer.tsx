@@ -1,5 +1,6 @@
 import Container from "./ui/Container";
 import Reveal from "./ui/Reveal";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -16,8 +17,8 @@ const Footer = () => {
 
           {/* Legal links */}
           <div className="flex items-center gap-6 text-sm">
-            <a
-              href="#"
+            <Link
+              to="/privacy"
               className="
                 text-muted-foreground
                 transition-colors duration-200
@@ -25,12 +26,12 @@ const Footer = () => {
               "
             >
               Privacy Policy
-            </a>
+            </Link>
 
             <span className="h-4 w-px bg-border-subtle" />
 
-            <a
-              href="#"
+            <Link
+              to="/terms"
               className="
                 text-muted-foreground
                 transition-colors duration-200
@@ -38,7 +39,7 @@ const Footer = () => {
               "
             >
               Terms of Service
-            </a>
+            </Link>
           </div>
         </Reveal>
       </Container>

@@ -7,22 +7,35 @@ import Note from "../pages/Note";
 import ProtectedRoutes from "./ProtectedRoutes";
 import GuestRoutes from "./GuestRoutes";
 import GoogleSuccess from "../pages/GoogleSuccess"
+import PrivacyPolicy from "../pages/PrivacyPolicy";
+import TermsOfService from "../pages/TermsOfService";
+import ScrollToTop from "../components/ScrollToTop";
 
 const AppRoutes = () => {
   return (
-    <Routes>
-      <Route element={<GuestRoutes />}>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/signin" element={<LoginSignup />}></Route>
-          <Route path="/auth/google-success" element={<GoogleSuccess/>}></Route>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route element={<GuestRoutes />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/signin" element={<LoginSignup />}></Route>
+            <Route
+              path="/auth/google-success"
+              element={<GoogleSuccess />}
+            ></Route>
+          </Route>
         </Route>
-      </Route>
-      <Route element={<ProtectedRoutes />}>
-        <Route path="/note" element={<Note />}></Route>
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+        </Route>
+        <Route element={<ProtectedRoutes />}>
+          <Route path="/note" element={<Note />}></Route>
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 
