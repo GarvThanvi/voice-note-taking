@@ -1,9 +1,64 @@
-import { Mail } from "lucide-react";
+import { useState } from "react";
+import axios from "axios";
+import { Loader2, Mail } from "lucide-react";
 import Button from "../ui/Button";
 import Container from "../ui/Container";
 import Reveal from "../ui/Reveal";
+import { subscribeToNewsletter } from "../../api/newsletterApi";
+
+type Status = { type: "success" | "error"; message: string };
 
 const SubscribeMail = () => {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<Status | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!email.trim()) {
+      setStatus({ type: "error", message: "Please enter your email." });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setStatus(null);
+
+      const data = await subscribeToNewsletter(email);
+
+      if (data.success) {
+        setEmail("");
+        setStatus({
+          type: "success",
+          message: data.message || "Thanks for subscribing!",
+        });
+      } else {
+        setStatus({
+          type: "error",
+          message: data.message || "Something went wrong. Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Error while subscribing to newsletter", error);
+      if (axios.isAxiosError(error)) {
+        setStatus({
+          type: "error",
+          message:
+            error.response?.data?.message ||
+            "Something went wrong. Please try again.",
+        });
+      } else {
+        setStatus({
+          type: "error",
+          message: "Something went wrong. Please try again.",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="w-full border-t border-border-subtle py-16 sm:py-20">
       <Container>
@@ -43,10 +98,17 @@ const SubscribeMail = () => {
 
             {/* Form */}
             <div className="w-full max-w-xl">
-              <form className="flex flex-col gap-3 sm:flex-row">
+              <form
+                onSubmit={handleSubmit}
+                noValidate
+                className="flex flex-col gap-3 sm:flex-row"
+              >
                 <input
                   type="email"
                   placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                   className="
                     h-12 min-w-0 flex-1
                     rounded-button
@@ -65,15 +127,28 @@ const SubscribeMail = () => {
 
                 <Button
                   type="submit"
+                  disabled={loading}
                   className="h-12 whitespace-nowrap px-7"
                 >
-                  Subscribe
+                  {loading ? <Loader2 className="animate-spin" /> : "Subscribe"}
                 </Button>
               </form>
 
-              <p className="mt-2 px-1 text-xs text-muted-foreground">
-                No spam. Unsubscribe anytime.
-              </p>
+              {status ? (
+                <p
+                  className={`mt-2 px-1 text-xs ${
+                    status.type === "success"
+                      ? "text-foreground"
+                      : "text-red-400"
+                  }`}
+                >
+                  {status.message}
+                </p>
+              ) : (
+                <p className="mt-2 px-1 text-xs text-muted-foreground">
+                  No spam. Unsubscribe anytime.
+                </p>
+              )}
             </div>
           </div>
         </Reveal>

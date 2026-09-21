@@ -24,6 +24,7 @@ import voiceRoutes from "./routes/voice.js";
 import voiceUndoRoutes from "./routes/voiceUndo.js";
 import passwordResetRoutes from "./routes/passwordReset.js";
 import guideRoutes from "./routes/guide.js";
+import newsletterRoutes from "./routes/newsletter.js";
 
 const PORT = process.env.PORT;
 const app = express();
@@ -815,6 +816,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
 
 app.use("/api/auth", passwordResetRoutes);
 app.use("/api/auth", guideRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/voice", voiceRoutes);
 app.use("/api/voice", voiceUndoRoutes);
 
