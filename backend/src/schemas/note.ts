@@ -28,3 +28,10 @@ export const updateNoteSchema = z.object({
 });
 
 export type UpdateNoteInput = z.infer<typeof updateNoteSchema>;
+
+export const reorderNoteSchema = z.object({
+  prevId: z.number().int().nullable().optional(),
+  nextId: z.number().int().nullable().optional(),
+});
+
+export type ReorderNoteInput = z.infer<typeof reorderNoteSchema>;

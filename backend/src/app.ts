@@ -11,6 +11,7 @@ import {
 import {
   noteSchema,
   updateNoteSchema,
+  reorderNoteSchema,
   type NoteInput,
   type UpdateNoteInput,
 } from "./schemas/note.js";
@@ -227,7 +228,7 @@ app.get("/api/note", authMiddleware, async (req, res) => {
       prisma.note.findMany({
         where,
         include: { todos: { orderBy: { order: "asc" } } },
-        orderBy: { updatedAt: "desc" },
+        orderBy: [{ order: "asc" }, { id: "desc" }],
         skip,
         take: limit,
       }),
@@ -247,6 +248,7 @@ app.get("/api/note", authMiddleware, async (req, res) => {
           bookmarked: note.bookmarked,
           createdAt: note.createdAt,
           updatedAt: note.updatedAt,
+          order: note.order,
         };
       }
       if (note.type === "CHECKBOX") {
@@ -261,6 +263,7 @@ app.get("/api/note", authMiddleware, async (req, res) => {
           bookmarked: note.bookmarked,
           createdAt: note.createdAt,
           updatedAt: note.updatedAt,
+          order: note.order,
         };
       }
     });
@@ -297,6 +300,12 @@ app.post("/api/note", authMiddleware, async (req, res) => {
     const noteData: NoteInput = result.data;
 
     const newNote = await prisma.$transaction(async (tx) => {
+      const minOrder = await tx.note.aggregate({
+        where: { userId },
+        _min: { order: true },
+      });
+      const nextOrder = (minOrder._min.order ?? 0) - 1;
+
       if (noteData.type === "PARAGRAPH") {
         return tx.note.create({
           data: {
@@ -304,6 +313,7 @@ app.post("/api/note", authMiddleware, async (req, res) => {
             content: noteData.content!,
             userId,
             title: noteData.title || "",
+            order: nextOrder,
           },
         });
       }
@@ -315,6 +325,7 @@ app.post("/api/note", authMiddleware, async (req, res) => {
             userId,
             title: noteData.title || "",
             content: "",
+            order: nextOrder,
           },
         });
 
@@ -495,6 +506,96 @@ app.put("/api/note/:noteId", authMiddleware, async (req, res) => {
       success: false,
       message: "Internal server error",
     });
+  }
+});
+
+app.put("/api/note/:noteId/order", authMiddleware, async (req, res) => {
+  try {
+    const noteId = Number(req.params.noteId);
+    const userId = req.userId!;
+
+    if (isNaN(noteId)) {
+      return res.status(400).json({ success: false, message: "Invalid note ID" });
+    }
+
+    const result = reorderNoteSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.error.issues[0]?.message ?? "Validation failed",
+      });
+    }
+
+    const { prevId, nextId } = result.data;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const note = await tx.note.findFirst({ where: { id: noteId, userId } });
+      if (!note) throw new Error("NOTE_NOT_FOUND");
+
+      const resolveNeighbor = async (id: number | null | undefined) => {
+        if (id === null || id === undefined) return null;
+        const neighbor = await tx.note.findFirst({
+          where: { id, userId },
+          select: { order: true },
+        });
+        if (!neighbor) throw new Error("NEIGHBOR_NOT_FOUND");
+        return neighbor.order;
+      };
+
+      let prevOrder = await resolveNeighbor(prevId);
+      let nextOrder = await resolveNeighbor(nextId);
+
+      const gapCollapsed =
+        prevOrder !== null && nextOrder !== null && nextOrder - prevOrder < 1e-9;
+
+      if (gapCollapsed) {
+        const allNotes = await tx.note.findMany({
+          where: { userId },
+          orderBy: [{ order: "asc" }, { id: "desc" }],
+          select: { id: true },
+        });
+        for (let index = 0; index < allNotes.length; index++) {
+          await tx.note.update({
+            where: { id: allNotes[index]!.id },
+            data: { order: index },
+          });
+        }
+        prevOrder = await resolveNeighbor(prevId);
+        nextOrder = await resolveNeighbor(nextId);
+      }
+
+      let newOrder: number;
+      if (prevOrder === null && nextOrder === null) {
+        newOrder = 0;
+      } else if (prevOrder === null) {
+        newOrder = nextOrder! - 1;
+      } else if (nextOrder === null) {
+        const maxOrder = await tx.note.aggregate({
+          where: { userId },
+          _max: { order: true },
+        });
+        newOrder = (maxOrder._max.order ?? 0) + 1;
+      } else {
+        newOrder = (prevOrder + nextOrder) / 2;
+      }
+
+      return tx.note.update({
+        where: { id: noteId },
+        data: { order: newOrder },
+        include: { todos: { orderBy: { order: "asc" } } },
+      });
+    });
+
+    res.json({ success: true, note: updated });
+  } catch (error) {
+    if (error instanceof Error && error.message === "NOTE_NOT_FOUND") {
+      return res.status(404).json({ success: false, message: "Note not found" });
+    }
+    if (error instanceof Error && error.message === "NEIGHBOR_NOT_FOUND") {
+      return res.status(400).json({ success: false, message: "Neighbor note not found" });
+    }
+    console.error("Error reordering note:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 

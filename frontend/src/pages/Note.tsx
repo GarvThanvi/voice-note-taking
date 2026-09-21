@@ -1,5 +1,6 @@
 import { Search, Moon, Sun, Grid2X2, List, Info, Menu } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Reorder } from "framer-motion";
 import Sidebar from "../components/NotePage/Sidebar";
 import NoteCard from "../components/NotePage/NoteCard";
 import NoteListItem from "../components/NotePage/NoteListItem";
@@ -13,6 +14,7 @@ import {
   updateNote,
   permanentDeleteNote,
   emptyTrash,
+  reorderNote,
 } from "../api/noteApi";
 import { updateGuidePreferences } from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
@@ -22,6 +24,28 @@ import { useInfiniteNotes } from "../hooks/useInfiniteNotes";
 import { useIntersectionObserver } from "../hooks/useIntersectionObserver";
 import { usePendingActions } from "../hooks/usePendingActions";
 import type { Note as NoteType } from "../api/noteApi";
+
+interface DraggableNoteProps {
+  id: number;
+  className?: string;
+  onDragStart: (id: number) => void;
+  onDragEnd: () => void;
+  children: React.ReactNode;
+}
+
+const DraggableNote = ({ id, className, onDragStart, onDragEnd, children }: DraggableNoteProps) => (
+  <Reorder.Item
+    as="div"
+    value={id}
+    className={className}
+    onDragStart={() => onDragStart(id)}
+    onDragEnd={onDragEnd}
+    whileDrag={{ scale: 1.03, zIndex: 30, boxShadow: "0 12px 32px rgba(0,0,0,0.28)" }}
+    transition={{ type: "spring", stiffness: 500, damping: 40 }}
+  >
+    {children}
+  </Reorder.Item>
+);
 
 const Note = () => {
   const { theme, toggleTheme } = useTheme();
@@ -57,6 +81,47 @@ const Note = () => {
   });
 
   const { isPending, run } = usePendingActions();
+
+  const draggingRef = useRef(false);
+  const draggedIdRef = useRef<number | null>(null);
+
+  const reorderEnabled = activeFilter === "all" && !debouncedSearch;
+
+  const handleDragStart = useCallback((id: number) => {
+    draggingRef.current = true;
+    draggedIdRef.current = id;
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    window.setTimeout(() => {
+      draggingRef.current = false;
+    }, 0);
+  }, []);
+
+  const handleReorder = useCallback(
+    (newOrder: number[]) => {
+      const movedId = draggedIdRef.current;
+      if (movedId === null) return;
+      const noteMap = new Map(notes.map((n) => [n.id, n]));
+      const reordered = newOrder
+        .map((id) => noteMap.get(id))
+        .filter((n): n is NoteType => Boolean(n));
+      if (reordered.length !== notes.length) return;
+
+      const index = newOrder.indexOf(movedId);
+      const prevId = index > 0 ? newOrder[index - 1]! : null;
+      const nextId = index < newOrder.length - 1 ? newOrder[index + 1]! : null;
+
+      setNotes(reordered);
+      reorderNote(movedId, prevId, nextId).catch(() => reset());
+    },
+    [notes, setNotes, reset]
+  );
+
+  const guardedOpen = (note: NoteType) => () => {
+    if (draggingRef.current) return;
+    handleOpenModal(note);
+  };
 
   const defaultGuideShowOnLogin = user?.hasSeenGuide
     ? Boolean(user.showGuideOnLogin)
@@ -207,6 +272,39 @@ const Note = () => {
           ? "Bookmark"
           : "All Notes";
 
+  const openNote = (note: NoteType) =>
+    reorderEnabled ? guardedOpen(note) : () => handleOpenModal(note);
+
+  const cardFor = (note: NoteType) => (
+    <NoteCard
+      key={note.id}
+      note={note}
+      pending={isPending(note.id)}
+      onClick={openNote(note)}
+      onToggleFavorite={handleToggleFavorite}
+      onDelete={handleDeleteNote}
+      onArchive={handleArchiveNote}
+      onRestore={handleRestoreNote}
+      onPermanentDelete={handlePermanentDelete}
+      filter={activeFilter}
+    />
+  );
+
+  const listItemFor = (note: NoteType) => (
+    <NoteListItem
+      key={note.id}
+      note={note}
+      pending={isPending(note.id)}
+      onClick={openNote(note)}
+      onToggleFavorite={handleToggleFavorite}
+      onDelete={handleDeleteNote}
+      onArchive={handleArchiveNote}
+      onRestore={handleRestoreNote}
+      onPermanentDelete={handlePermanentDelete}
+      filter={activeFilter}
+    />
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground flex">
       <Sidebar
@@ -355,39 +453,50 @@ const Note = () => {
               )}
 
               {view === "grid" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                reorderEnabled ? (
+                  <Reorder.Group
+                    as="div"
+                    values={notes.map((n) => n.id)}
+                    onReorder={handleReorder}
+                    className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4"
+                  >
+                    {notes.map((note) => (
+                      <DraggableNote
+                        key={note.id}
+                        id={note.id}
+                        className="h-full [&>article]:h-full"
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                      >
+                        {cardFor(note)}
+                      </DraggableNote>
+                    ))}
+                  </Reorder.Group>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                    {notes.map(cardFor)}
+                  </div>
+                )
+              ) : reorderEnabled ? (
+                <Reorder.Group
+                  as="div"
+                  values={notes.map((n) => n.id)}
+                  onReorder={handleReorder}
+                  className="flex flex-col gap-2"
+                >
                   {notes.map((note) => (
-                    <NoteCard
+                    <DraggableNote
                       key={note.id}
-                      note={note}
-                      pending={isPending(note.id)}
-                      onClick={() => handleOpenModal(note)}
-                      onToggleFavorite={handleToggleFavorite}
-                      onDelete={handleDeleteNote}
-                      onArchive={handleArchiveNote}
-                      onRestore={handleRestoreNote}
-                      onPermanentDelete={handlePermanentDelete}
-                      filter={activeFilter}
-                    />
+                      id={note.id}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                    >
+                      {listItemFor(note)}
+                    </DraggableNote>
                   ))}
-                </div>
+                </Reorder.Group>
               ) : (
-                <div className="space-y-2">
-                  {notes.map((note) => (
-                    <NoteListItem
-                      key={note.id}
-                      note={note}
-                      pending={isPending(note.id)}
-                      onClick={() => handleOpenModal(note)}
-                      onToggleFavorite={handleToggleFavorite}
-                      onDelete={handleDeleteNote}
-                      onArchive={handleArchiveNote}
-                      onRestore={handleRestoreNote}
-                      onPermanentDelete={handlePermanentDelete}
-                      filter={activeFilter}
-                    />
-                  ))}
-                </div>
+                <div className="space-y-2">{notes.map(listItemFor)}</div>
               )}
 
               <div ref={sentryRef} className="h-px w-full" aria-hidden="true" />

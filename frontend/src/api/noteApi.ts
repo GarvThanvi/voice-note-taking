@@ -21,6 +21,7 @@ export interface Note {
   bookmarked: boolean;
   createdAt: string;
   updatedAt: string;
+  order: number;
   todos?: Todo[];
 }
 
@@ -125,6 +126,19 @@ export const permanentDeleteNote = async (noteId: number): Promise<void> => {
   if (!data.success) {
     throw new Error(data.message);
   }
+};
+
+export const reorderNote = async (
+  noteId: number,
+  prevId: number | null,
+  nextId: number | null
+): Promise<Note> => {
+  const response = await api.put(`/note/${noteId}/order`, { prevId, nextId });
+  const data = response.data;
+  if (!data.success) {
+    throw new Error(data.message);
+  }
+  return data.note;
 };
 
 export const emptyTrash = async (): Promise<void> => {

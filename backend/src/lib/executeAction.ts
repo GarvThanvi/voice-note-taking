@@ -88,8 +88,19 @@ const executeCreateNote = async (
           : [];
 
     const note = await prisma.$transaction(async (tx) => {
+      const minOrder = await tx.note.aggregate({
+        where: { userId },
+        _min: { order: true },
+      });
+
       const n = await tx.note.create({
-        data: { userId, type: "CHECKBOX", title, content: "" },
+        data: {
+          userId,
+          type: "CHECKBOX",
+          title,
+          content: "",
+          order: (minOrder._min.order ?? 0) - 1,
+        },
       });
 
       if (items.length > 0) {
@@ -120,8 +131,18 @@ const executeCreateNote = async (
   }
 
   const content = intent.content_paragraph || "";
+  const minOrder = await prisma.note.aggregate({
+    where: { userId },
+    _min: { order: true },
+  });
   const note = await prisma.note.create({
-    data: { userId, type: "PARAGRAPH", title, content },
+    data: {
+      userId,
+      type: "PARAGRAPH",
+      title,
+      content,
+      order: (minOrder._min.order ?? 0) - 1,
+    },
   });
   const undoToken = createUndoToken("create_note", userId, { noteId: note.id });
 
