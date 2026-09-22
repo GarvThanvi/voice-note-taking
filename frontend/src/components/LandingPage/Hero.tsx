@@ -134,11 +134,11 @@ const Hero = () => {
 
           <Reveal delay={0.15}>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
-              <Link to="/login">
+              <Link to="/signin">
                 <Button>Get Started</Button>
               </Link>
               <a
-                href="#features"
+                href="#features-section"
                 className="inline-flex items-center justify-center rounded-button border border-border px-6 py-2.5 text-base font-medium text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-surface"
               >
                 See how it works

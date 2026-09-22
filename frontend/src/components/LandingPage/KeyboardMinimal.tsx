@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import {
   FileText,
   ListChecks,
@@ -52,15 +53,15 @@ const benefits = [
 
 const KeyboardMinimal = () => {
   return (
-    <section className="w-full bg-background pt-20 pb-10 sm:pt-24 sm:pb-12">
+    <section className="w-full bg-background pt-6 pb-10 sm:pt-8 sm:pb-12">
       <Container>
         <Reveal>
           <div
             className="
               relative overflow-hidden
-              px-6 py-14
-              sm:px-10 sm:py-16
-              lg:px-14 lg:py-20
+              px-6 pt-8 pb-14
+              sm:px-10 sm:pt-10 sm:pb-16
+              lg:px-14 lg:pt-12 lg:pb-20
             "
           >
             {/* Background glow */}
@@ -100,57 +101,58 @@ const KeyboardMinimal = () => {
               </p>
 
               {/* Benefits */}
-              <div className="mt-10 flex w-full max-w-2xl flex-col items-center justify-center gap-6 sm:flex-row sm:gap-0">
+              <div className="mt-10 flex w-full max-w-3xl flex-col items-center justify-center gap-6 sm:flex-row sm:gap-8">
                 {benefits.map((benefit, index) => {
                   const Icon = benefit.icon;
 
                   return (
-                    <div
-                      key={benefit.title}
-                      className="
-                        flex
-                        w-full
-                        items-center
-                        justify-center
-                        gap-3
-                        sm:w-1/3
-                      "
-                    >
+                    <Fragment key={benefit.title}>
                       <div
                         className="
                           flex
-                          h-10
-                          w-10
-                          shrink-0
+                          w-full
                           items-center
                           justify-center
-                          rounded-full
-                          border
-                          border-primary/20
-                          bg-primary/5
+                          gap-3
+                          sm:flex-1
                         "
                       >
-                        <Icon
-                          size={18}
-                          strokeWidth={1.8}
-                          className="text-primary"
-                        />
-                      </div>
+                        <div
+                          className="
+                            flex
+                            h-10
+                            w-10
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-full
+                            border
+                            border-primary/20
+                            bg-primary/5
+                          "
+                        >
+                          <Icon
+                            size={18}
+                            strokeWidth={1.8}
+                            className="text-primary"
+                          />
+                        </div>
 
-                      <div className="text-left">
-                        <p className="text-sm font-medium text-foreground">
-                          {benefit.title}
-                        </p>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-foreground">
+                            {benefit.title}
+                          </p>
 
-                        <p className="mt-0.5 text-xs text-muted">
-                          {benefit.description}
-                        </p>
+                          <p className="mt-0.5 text-xs text-muted">
+                            {benefit.description}
+                          </p>
+                        </div>
                       </div>
 
                       {index !== benefits.length - 1 && (
-                        <div className="ml-auto hidden h-8 w-px bg-border-subtle sm:block" />
+                        <div className="hidden h-8 w-px shrink-0 bg-border-subtle sm:block" />
                       )}
-                    </div>
+                    </Fragment>
                   );
                 })}
               </div>

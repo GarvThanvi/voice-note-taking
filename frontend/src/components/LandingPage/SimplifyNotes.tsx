@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import Button from "../ui/Button";
 import Container from "../ui/Container";
 import Reveal from "../ui/Reveal";
@@ -32,7 +33,9 @@ const SimplifyNotes = () => {
               <p className="mb-4 mt-3 text-sm text-muted sm:text-base">
                 Think, Speak and get things done with NoteFlow.
               </p>
-              <Button>Get Started</Button>
+              <Link to="/signin">
+                <Button>Get Started</Button>
+              </Link>
             </div>
           </div>
         </Reveal>
