@@ -525,7 +525,16 @@ const Note = () => {
       />
 
       <VoiceControl
-        onActionDone={(note) => {
+        onActionDone={(note, action) => {
+          if (action === "archive" && note) {
+            setNotes((prev) => prev.filter((n) => n.id !== note.id));
+            setTotal((prev) => Math.max(0, prev - 1));
+            if (selectedNote?.id === note.id) {
+              setModalOpen(false);
+              setSelectedNote(null);
+            }
+            return;
+          }
           if (note) {
             const exists = notes.some((n) => n.id === note.id);
             setNotes((prev) => {

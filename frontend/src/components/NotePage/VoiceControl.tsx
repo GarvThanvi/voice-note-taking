@@ -17,7 +17,7 @@ interface Toast {
 interface VoiceControlProps {
   onTranscript?: (transcript: string) => void;
   onIntent?: (intent: VoiceIntent) => void;
-  onActionDone?: (note?: Note) => void;
+  onActionDone?: (note?: Note, action?: string) => void;
   onUndo?: () => void;
   onSearch?: (query: string) => void;
 }
@@ -139,7 +139,7 @@ const VoiceControl = ({ onTranscript, onIntent, onActionDone, onUndo, onSearch }
           onTranscript?.(data.transcript);
           if (data.intent) onIntent?.(data.intent);
           if (exec?.status === "done") {
-            onActionDone?.(exec.note);
+            onActionDone?.(exec.note, exec.action);
             if (exec.action === "search" && exec.searchQuery) {
               onSearch?.(exec.searchQuery);
             }

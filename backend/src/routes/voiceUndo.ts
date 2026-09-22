@@ -87,6 +87,18 @@ router.post("/undo", authMiddleware, async (req, res) => {
         break;
       }
 
+      case "archive": {
+        const { noteId, previousArchived } = entry.payload as {
+          noteId: number;
+          previousArchived: boolean;
+        };
+        await prisma.note.update({
+          where: { id: noteId },
+          data: { archived: previousArchived ?? false },
+        });
+        break;
+      }
+
       default:
         return res.status(400).json({
           success: false,

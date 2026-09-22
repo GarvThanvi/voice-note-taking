@@ -61,6 +61,8 @@ export const executeAction = async (
       return executeUpdateTodo(userId, intent, resolution);
     case "update_note":
       return executeUpdateNote(userId, intent, resolution);
+    case "archive":
+      return executeArchive(userId, intent, resolution);
     case "search":
       return executeSearch(intent);
     default:
@@ -461,6 +463,55 @@ const executeUpdateNote = async (
     action: "update_note",
     noteId: note.id,
     summary: `Appended content to "${note.title || "Untitled"}"`,
+    undoToken,
+    note: updated as ExecutionNote,
+  };
+};
+
+const executeArchive = async (
+  userId: number,
+  intent: VoiceIntent,
+  resolution: ResolutionResult
+): Promise<ExecutionResult> => {
+  if (resolution.status !== "found") {
+    return {
+      status: "not_found",
+      action: "archive",
+      summary: `No matching note found for "${intent.note_hint || ""}"`,
+    };
+  }
+
+  const target = resolution.target;
+
+  const note = await prisma.note.findFirst({
+    where: { id: target.noteId, userId, archived: false },
+    include: { todos: { orderBy: { order: "asc" } } },
+  });
+
+  if (!note) {
+    return {
+      status: "not_found",
+      action: "archive",
+      summary: "Note not found or already archived.",
+    };
+  }
+
+  const updated = await prisma.note.update({
+    where: { id: note.id },
+    data: { archived: true },
+    include: { todos: { orderBy: { order: "asc" } } },
+  });
+
+  const undoToken = createUndoToken("archive", userId, {
+    noteId: note.id,
+    previousArchived: note.archived,
+  });
+
+  return {
+    status: "done",
+    action: "archive",
+    noteId: note.id,
+    summary: `Archived "${note.title || "Untitled"}"`,
     undoToken,
     note: updated as ExecutionNote,
   };
