@@ -22,9 +22,7 @@ const Shortcuts = () => {
         <Reveal>
           <div
             className="
-              relative overflow-hidden rounded-2xl
-              border border-border
-              bg-surface
+              relative
               px-6 py-10
               sm:px-10 sm:py-12
               lg:px-16 lg:py-14

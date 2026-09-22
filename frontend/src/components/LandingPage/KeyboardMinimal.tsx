@@ -52,15 +52,12 @@ const benefits = [
 
 const KeyboardMinimal = () => {
   return (
-    <section className="w-full bg-background py-20 sm:py-24">
+    <section className="w-full bg-background pt-20 pb-10 sm:pt-24 sm:pb-12">
       <Container>
         <Reveal>
           <div
             className="
               relative overflow-hidden
-              rounded-2xl
-              border border-border
-              bg-surface
               px-6 py-14
               sm:px-10 sm:py-16
               lg:px-14 lg:py-20
