@@ -4,7 +4,7 @@ import Reveal from "../ui/Reveal";
 
 const SimplifyNotes = () => {
   return (
-    <section className="w-full border-t border-border-subtle bg-background py-12">
+    <section className="w-full bg-background py-12">
       <Container>
         <Reveal>
           <div className="flex flex-col items-center">

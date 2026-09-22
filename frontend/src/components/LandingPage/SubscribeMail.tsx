@@ -60,7 +60,7 @@ const SubscribeMail = () => {
   };
 
   return (
-    <section className="w-full border-t border-border-subtle py-16 sm:py-20">
+    <section className="w-full py-16 sm:py-20">
       <Container>
         <Reveal>
           <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
