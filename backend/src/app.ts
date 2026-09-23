@@ -26,11 +26,15 @@ import passwordResetRoutes from "./routes/passwordReset.js";
 import guideRoutes from "./routes/guide.js";
 import newsletterRoutes from "./routes/newsletter.js";
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8080;
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: process.env.FRONTEND_URL }));
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
 app.post("/api/auth/signup", async (req, res) => {
   try {
