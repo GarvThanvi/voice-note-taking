@@ -63,9 +63,9 @@ const SubscribeMail = () => {
     <section className="w-full py-16 sm:py-20">
       <Container>
         <Reveal>
-          <div className="flex flex-col items-center gap-8 text-center">
+          <div className="px-6 sm:px-10 lg:px-16 flex flex-col items-center gap-8 text-center lg:flex-row lg:items-center lg:justify-between lg:text-left">
             {/* Content */}
-            <div className="flex flex-col items-center gap-5">
+            <div className="flex items-center gap-5">
               <div
                 className="
                   flex h-28 w-28 shrink-0 items-center justify-center
@@ -82,15 +82,16 @@ const SubscribeMail = () => {
                 />
               </div>
 
-              <div className="max-w-lg">
+              <div>
                 <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                   Stay in the{" "}
                   <span className="text-primary">flow.</span>
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-muted sm:text-base">
-                  Get the latest updates, tips, and features delivered to your
-                  inbox.
+                  Get the latest updates, tips, and features
+                  <br className="hidden sm:block" />
+                  delivered to your inbox.
                 </p>
               </div>
             </div>
