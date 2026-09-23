@@ -63,9 +63,9 @@ const SubscribeMail = () => {
     <section className="w-full py-16 sm:py-20">
       <Container>
         <Reveal>
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col items-center gap-8 text-center">
             {/* Content */}
-            <div className="flex items-center gap-5">
+            <div className="flex flex-col items-center gap-5">
               <div
                 className="
                   flex h-28 w-28 shrink-0 items-center justify-center
@@ -82,16 +82,15 @@ const SubscribeMail = () => {
                 />
               </div>
 
-              <div>
+              <div className="max-w-lg">
                 <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                   Stay in the{" "}
                   <span className="text-primary">flow.</span>
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-muted sm:text-base">
-                  Get the latest updates, tips, and features
-                  <br className="hidden sm:block" />
-                  delivered to your inbox.
+                  Get the latest updates, tips, and features delivered to your
+                  inbox.
                 </p>
               </div>
             </div>
@@ -110,18 +109,20 @@ const SubscribeMail = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   className="
-                    h-12 min-w-0 flex-1
+                    h-12 w-full min-w-0
                     rounded-button
                     border border-border-subtle
                     bg-surface
                     px-4
-                    text-sm text-foreground
+                    text-left text-base text-foreground
                     outline-none
                     placeholder:text-muted-foreground
                     transition-all duration-200
                     focus:border-primary/50
                     focus:ring-2
                     focus:ring-primary/10
+                    sm:flex-1
+                    sm:text-sm
                   "
                 />
 

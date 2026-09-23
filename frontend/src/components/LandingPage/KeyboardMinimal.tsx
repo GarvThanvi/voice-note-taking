@@ -112,9 +112,10 @@ const KeyboardMinimal = () => {
                           flex
                           w-full
                           items-center
-                          justify-center
+                          justify-start
                           gap-3
                           sm:flex-1
+                          sm:justify-center
                         "
                       >
                         <div
