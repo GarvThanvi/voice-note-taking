@@ -78,7 +78,7 @@ const Sidebar = ({
           fixed inset-y-0 left-0 z-[110] w-[260px] bg-background border-r border-border-subtle flex flex-col
           transition-transform duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:static lg:translate-x-0 lg:z-auto lg:min-h-screen lg:transition-none
+          lg:sticky lg:top-0 lg:self-start lg:translate-x-0 lg:z-auto lg:h-screen lg:overflow-y-auto lg:transition-none
         `}
       >
         <div className="px-6 pt-7 pb-6">
