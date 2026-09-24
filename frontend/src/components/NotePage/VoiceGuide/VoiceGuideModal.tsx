@@ -72,7 +72,7 @@ const VoiceGuideModal = ({
         className="
           relative
           flex
-          h-[72vh]
+          h-auto
           max-h-[680px]
           min-h-[480px]
           w-full
