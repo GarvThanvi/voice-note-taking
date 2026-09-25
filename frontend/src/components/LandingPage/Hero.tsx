@@ -1,6 +1,5 @@
 import { Mic } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useReducedMotion } from "framer-motion";
 import { Link } from "react-router-dom";
 import Badge from "../ui/Badge";
 import Button from "../ui/Button";
@@ -9,7 +8,7 @@ import Reveal from "../ui/Reveal";
 
 const DICTATION_LINES = [
   "Add olive oil to the shopping list for Saturday",
-  "Remind me to call the dentist tomorrow at 10am",
+  "Add call the dentist to my to-do list",
   "Create a task: water the plants tonight",
 ];
 
@@ -20,20 +19,16 @@ const formatTime = (s: number) =>
   `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 const Dictation = () => {
-  const reducedMotion = useReducedMotion();
   const [text, setText] = useState("");
   const [lineIndex, setLineIndex] = useState(0);
   const [seconds, setSeconds] = useState(0);
-  const displayed = reducedMotion ? DICTATION_LINES[0] : text;
 
   useEffect(() => {
-    if (reducedMotion) return;
     const timer = window.setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => window.clearInterval(timer);
-  }, [reducedMotion]);
+  }, []);
 
   useEffect(() => {
-    if (reducedMotion) return;
     const current = DICTATION_LINES[lineIndex];
     const timeout =
       text.length < current.length
@@ -46,7 +41,7 @@ const Dictation = () => {
             setText("");
           }, PAUSE_AFTER_LINE);
     return () => window.clearTimeout(timeout);
-  }, [text, lineIndex, reducedMotion]);
+  }, [text, lineIndex]);
 
   return (
     <div className="mx-auto mt-14 w-full max-w-lg rounded-card border border-border bg-surface p-6 text-left shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
@@ -70,7 +65,7 @@ const Dictation = () => {
         className="flex min-h-[4.5rem] items-start py-5 text-base leading-relaxed text-foreground sm:text-lg"
       >
         <span className="mr-1 select-none text-muted-foreground">&ldquo;</span>
-        <span>{displayed}</span>
+        <span>{text}</span>
         <span
           aria-hidden
           className="animate-pulse ml-1 mt-1 inline-block h-5 w-[2px] bg-foreground/80"
