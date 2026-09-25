@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X, AudioWaveform, ArrowRight, Check } from "lucide-react";
 import Button from "../../ui/Button";
 import StepOne from "./StepOne";
@@ -32,6 +32,11 @@ const VoiceGuideModal = ({
   onShowOnNextLoginChange,
 }: VoiceGuideModalProps) => {
   const [step, setStep] = useState<1 | 2>(1);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   const handleClose = useCallback(() => {
     setStep(1);
@@ -120,7 +125,10 @@ const VoiceGuideModal = ({
         </div>
 
         {/* Body */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-5">
+        <div
+          ref={bodyRef}
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-5"
+        >
           <div key={step} className="flex flex-1 flex-col animate-auth-enter">
             {step === 1 ? <StepOne /> : <StepTwo />}
           </div>

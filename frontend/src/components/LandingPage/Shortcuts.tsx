@@ -52,7 +52,7 @@ const Shortcuts = () => {
                 </h2>
 
                 <p className="mt-4 max-w-lg text-sm leading-6 text-muted sm:text-base">
-                  Hit Ctrl + K and start talking. Your thoughts are instantly
+                  Hold Ctrl + K and start talking. Your thoughts are instantly
                   turned into notes, tasks, and everything you need.
                 </p>
 
@@ -122,7 +122,7 @@ const Shortcuts = () => {
     />
 
     <span className="text-xs text-muted">
-      Press Ctrl + K to start listening
+      Hold Ctrl + K to start listening
     </span>
   </div>
 </div>
