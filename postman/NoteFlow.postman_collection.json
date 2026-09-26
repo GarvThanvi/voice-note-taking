@@ -1,0 +1,541 @@
+{
+  "info": {
+    "name": "NoteFlow API",
+    "_postman_id": "b7f2c1a4-5d3e-4c9a-9f1b-2a6e8d0c4f11",
+    "description": "REST API for NoteFlow — auth, notes/todos, voice command pipeline, undo, password reset, and newsletter.\n\nSet the `baseUrl`, `apiUrl`, and `token` variables (collection or environment). Sign In / Sign Up auto-save the returned JWT to `{{token}}`.\n\nRun the backend first: `cd backend && npm run dev` (default http://localhost:8080).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "apiUrl", "value": "http://localhost:8080/api" },
+    { "key": "token", "value": "" },
+    { "key": "email", "value": "user@example.com" },
+    { "key": "password", "value": "Password1!" },
+    { "key": "username", "value": "testuser" },
+    { "key": "noteId", "value": "1" },
+    { "key": "todoId", "value": "1" },
+    { "key": "undoToken", "value": "" },
+    { "key": "otp", "value": "000000" }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Liveness probe. Returns `{ \"status\": \"ok\" }`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign Up",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.token) { pm.collectionVariables.set('token', res.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/auth/signup",
+              "host": ["{{apiUrl}}"],
+              "path": ["auth", "signup"]
+            },
+            "description": "Create an account. Password must be 8-20 chars with upper, lower, digit, and special character. Returns a JWT (auto-saved to `{{token}}`). 409 if the email exists."
+          },
+          "response": []
+        },
+        {
+          "name": "Sign In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.token) { pm.collectionVariables.set('token', res.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/auth/signin",
+              "host": ["{{apiUrl}}"],
+              "path": ["auth", "signin"]
+            },
+            "description": "Sign in with email + password. Returns a JWT (auto-saved to `{{token}}`). Google-only accounts cannot sign in with a password."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/auth/me",
+              "host": ["{{apiUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Returns the authenticated user's profile. Requires Bearer `{{token}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Guide Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hasSeenGuide\": true,\n  \"showGuideOnLogin\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/auth/guide",
+              "host": ["{{apiUrl}}"],
+              "path": ["auth", "guide"]
+            },
+            "description": "Update onboarding guide preferences. Both fields optional. Requires Bearer `{{token}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Google OAuth Redirect",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/auth/google",
+              "host": ["{{apiUrl}}"],
+              "path": ["auth", "google"]
+            },
+            "description": "Redirects (302) to Google's consent screen. Open in a browser; it is not useful as an API call."
+          },
+          "response": []
+        },
+        {
+          "name": "Google OAuth Callback",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/auth/google/callback?code=<authorization-code>",
+              "host": ["{{apiUrl}}"],
+              "path": ["auth", "google", "callback"],
+              "query": [{ "key": "code", "value": "<authorization-code>" }]
+            },
+            "description": "Google redirects here after consent. Exchanges the code, creates/updates the user, then redirects to the frontend with `?token=`. Documented for reference."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Password Reset",
+      "item": [
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/auth/forgot-password",
+              "host": ["{{apiUrl}}"],
+              "path": ["auth", "forgot-password"]
+            },
+            "description": "Emails a 6-digit reset code. Always returns a generic success message (no account enumeration). 60s resend cooldown. Rate limited: 5 per 15 min."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Reset OTP",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{otp}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/auth/verify-reset-otp",
+              "host": ["{{apiUrl}}"],
+              "path": ["auth", "verify-reset-otp"]
+            },
+            "description": "Checks the 6-digit code. Expires in 10 min; max 5 attempts. Rate limited: 10 per 15 min."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{otp}}\",\n  \"password\": \"NewPassword1!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/auth/reset-password",
+              "host": ["{{apiUrl}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Re-verifies the code, then sets the new password and deletes all of the user's OTPs. Same password rules as signup."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notes",
+      "item": [
+        {
+          "name": "List Notes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/note?page=1&limit=12",
+              "host": ["{{apiUrl}}"],
+              "path": ["note"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default 1)." },
+                { "key": "limit", "value": "12", "description": "Items per page (default 12, max 50)." },
+                { "key": "search", "value": "", "disabled": true, "description": "Case-insensitive search over title, content, and todo text." },
+                { "key": "bookmarked", "value": "true", "disabled": true, "description": "Only bookmarked notes." },
+                { "key": "archived", "value": "true", "disabled": true, "description": "Only archived notes." },
+                { "key": "trashed", "value": "true", "disabled": true, "description": "Only notes in trash (soft-deleted)." }
+              ]
+            },
+            "description": "Paginated, filterable list of the user's notes. Returns `{ notes, total, page, hasMore }`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Note (Paragraph)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.newNote && res.newNote.id) { pm.collectionVariables.set('noteId', String(res.newNote.id)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"PARAGRAPH\",\n  \"title\": \"Meeting notes\",\n  \"content\": \"Discussed roadmap and next steps.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/note",
+              "host": ["{{apiUrl}}"],
+              "path": ["note"]
+            },
+            "description": "Create a paragraph note. New notes are inserted at the top. Saves `newNote.id` to `{{noteId}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Note (Checkbox)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.newNote && res.newNote.id) { pm.collectionVariables.set('noteId', String(res.newNote.id)); }",
+                  "if (res && res.newNote && res.newNote.todos && res.newNote.todos[0]) { pm.collectionVariables.set('todoId', String(res.newNote.todos[0].id)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CHECKBOX\",\n  \"title\": \"Groceries\",\n  \"todos\": [\"milk\", \"eggs\", \"bread\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/note",
+              "host": ["{{apiUrl}}"],
+              "path": ["note"]
+            },
+            "description": "Create a checklist note with initial items. Saves the note id and first todo id to variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Note",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated title\",\n  \"content\": \"Updated content\",\n  \"bookmarked\": true,\n  \"todos\": [\n    { \"id\": 1, \"text\": \"milk\", \"done\": true },\n    { \"text\": \"butter\", \"done\": false }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/note/{{noteId}}",
+              "host": ["{{apiUrl}}"],
+              "path": ["note", "{{noteId}}"]
+            },
+            "description": "Partial update. Omitted fields are ignored. For checklists, sending `todos` syncs items: existing ids are updated/reordered, missing ids are deleted, id-less entries are created. Can also set `archived`, `bookmarked`, or `deletedAt`."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Note Order",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prevId\": null,\n  \"nextId\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/note/{{noteId}}/order",
+              "host": ["{{apiUrl}}"],
+              "path": ["note", "{{noteId}}", "order"]
+            },
+            "description": "Reorder by placing the note between its new neighbors. `prevId` / `nextId` are the ids it should sit between; use `null` for top (`prevId`) or bottom (`nextId`)."
+          },
+          "response": []
+        },
+        {
+          "name": "Complete / Uncomplete Todos",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"todoIds\": [1],\n  \"done\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/note/todo/complete/{{noteId}}",
+              "host": ["{{apiUrl}}"],
+              "path": ["note", "todo", "complete", "{{noteId}}"]
+            },
+            "description": "Batch mark todos done/undone on a checklist note. Body: `{ todoIds: number[] (min 1), done?: boolean }`; `done` defaults to true. All ids must belong to the note."
+          },
+          "response": []
+        },
+        {
+          "name": "Trash Note (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/note/{{noteId}}",
+              "host": ["{{apiUrl}}"],
+              "path": ["note", "{{noteId}}"]
+            },
+            "description": "Moves the note to trash by setting `deletedAt`. Recoverable."
+          },
+          "response": []
+        },
+        {
+          "name": "Restore Note",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deletedAt\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/note/{{noteId}}",
+              "host": ["{{apiUrl}}"],
+              "path": ["note", "{{noteId}}"]
+            },
+            "description": "Restores a trashed note by setting `deletedAt` back to null."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Note Permanently",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/note/{{noteId}}/permanent",
+              "host": ["{{apiUrl}}"],
+              "path": ["note", "{{noteId}}", "permanent"]
+            },
+            "description": "Hard-deletes the note and its todos. Not recoverable."
+          },
+          "response": []
+        },
+        {
+          "name": "Empty Trash",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/note/trash/empty",
+              "host": ["{{apiUrl}}"],
+              "path": ["note", "trash", "empty"]
+            },
+            "description": "Permanently deletes all of the user's trashed notes."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Voice",
+      "item": [
+        {
+          "name": "Voice Command",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.execution && res.execution.undoToken) { pm.collectionVariables.set('undoToken', res.execution.undoToken); }",
+                  "if (res && res.execution && res.execution.noteId) { pm.collectionVariables.set('noteId', String(res.execution.noteId)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "audio",
+                  "type": "file",
+                  "src": [],
+                  "description": "Audio file (webm/wav/mp3/ogg/m4a). Max 25MB."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{apiUrl}}/voice/command",
+              "host": ["{{apiUrl}}"],
+              "path": ["voice", "command"]
+            },
+            "description": "Full pipeline: transcribe (Whisper) -> extract intent (GPT-4o-mini) -> fuzzy-resolve target -> execute. Returns `{ transcript, intent, resolution, execution }`. Rate limited: 10 per min per user. Saves `execution.undoToken` to `{{undoToken}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Undo Voice Action",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"undoToken\": \"{{undoToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/voice/undo",
+              "host": ["{{apiUrl}}"],
+              "path": ["voice", "undo"]
+            },
+            "description": "Reverts the last voice action using its single-use `undoToken` (valid 5 min). Tokens are bound to the user who created them."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Newsletter",
+      "item": [
+        {
+          "name": "Subscribe",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"subscriber@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{apiUrl}}/newsletter/subscribe",
+              "host": ["{{apiUrl}}"],
+              "path": ["newsletter", "subscribe"]
+            },
+            "description": "Subscribe an email. Idempotent upsert — re-subscribing clears `unsubscribedAt`. Rate limited: 10 per 15 min."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

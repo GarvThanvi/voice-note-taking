@@ -4,6 +4,7 @@ import {
   noteSchema,
   updateNoteSchema,
   reorderNoteSchema,
+  completeTodoSchema,
 } from "../schemas/note.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
@@ -408,10 +409,8 @@ router.put("/:noteId/order", async (req, res, next) => {
 });
 
 router.put("/todo/complete/:noteId", async (req, res) => {
-  const { todoIds, done } = req.body;
   const noteId = Number(req.params.noteId);
   const userId = req.userId!;
-  const setDone = done !== undefined ? done : true;
 
   if (isNaN(noteId)) {
     return res.status(400).json({
@@ -420,15 +419,16 @@ router.put("/todo/complete/:noteId", async (req, res) => {
     });
   }
 
-  if (
-    !Array.isArray(todoIds) ||
-    todoIds.some((id) => typeof id !== "number" || isNaN(id))
-  ) {
+  const result = completeTodoSchema.safeParse(req.body);
+  if (!result.success) {
     return res.status(400).json({
       success: false,
-      message: "Invalid todoIds: must be an array of number",
+      message: result.error.issues[0]?.message ?? "Validation failed",
     });
   }
+
+  const { todoIds } = result.data;
+  const setDone = result.data.done ?? true;
 
   const note = await prisma.note.findFirst({
     where: {

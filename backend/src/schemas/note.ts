@@ -17,6 +17,13 @@ export const todoUpdateSchema = z.object({
 
 export type TodoUpdateInput = z.infer<typeof todoUpdateSchema>;
 
+export const completeTodoSchema = z.object({
+  todoIds: z.array(z.number().int()).min(1, "At least one todo id is required"),
+  done: z.boolean().optional(),
+});
+
+export type CompleteTodoInput = z.infer<typeof completeTodoSchema>;
+
 export const updateNoteSchema = z.object({
   title: z.string().optional(),
   type: z.enum(["CHECKBOX", "PARAGRAPH"]).optional(),
