@@ -6,12 +6,16 @@ import { signToken } from "../lib/jwt.js";
 import { signupSchema, signinSchema } from "../schemas/auth.js";
 import { googleClient } from "../config/google.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
+import {
+  signupLimiter,
+  signinLimiter,
+} from "../middlewares/rateLimit.middleware.js";
 
 const router = Router();
 
 const googleScopes = ["openid", "profile", "email"];
 
-router.post("/signup", async (req, res, next) => {
+router.post("/signup", signupLimiter, async (req, res, next) => {
   try {
     const result = signupSchema.safeParse(req.body);
 
@@ -65,7 +69,7 @@ router.post("/signup", async (req, res, next) => {
   }
 });
 
-router.post("/signin", async (req, res, next) => {
+router.post("/signin", signinLimiter, async (req, res, next) => {
   try {
     const result = signinSchema.safeParse(req.body);
 

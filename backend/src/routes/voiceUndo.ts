@@ -111,7 +111,7 @@ router.post("/undo", authMiddleware, async (req, res) => {
     console.error("Undo error:", error);
     return res.status(500).json({
       success: false,
-      message: error instanceof Error ? error.message : "Unknown error",
+      message: "Something went wrong while processing your request.",
     });
   }
 });
