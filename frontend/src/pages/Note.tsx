@@ -1,9 +1,11 @@
-import { Search, Moon, Sun, Grid2X2, List, Info, Menu, GripVertical, Undo2 } from "lucide-react";
+import { Search, Moon, Sun, Grid2X2, List, Info, Menu } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Reorder, useDragControls } from "framer-motion";
+import { Reorder } from "framer-motion";
 import Sidebar from "../components/NotePage/Sidebar";
-import NoteCard from "../components/NotePage/NoteCard";
-import NoteListItem from "../components/NotePage/NoteListItem";
+import NoteItem from "../components/NotePage/NoteItem";
+import DraggableNote from "../components/NotePage/DraggableNote";
+import NoteToast from "../components/NotePage/NoteToast";
+import { getPageTitle, getEmptyMessage } from "../components/NotePage/notesMeta";
 import NoteModal from "../components/NotePage/NoteModal";
 import NoteSkeleton from "../components/NotePage/NoteSkeleton";
 import NoteEndIndicator from "../components/NotePage/NoteEndIndicator";
@@ -24,51 +26,6 @@ import { useInfiniteNotes } from "../hooks/useInfiniteNotes";
 import { useIntersectionObserver } from "../hooks/useIntersectionObserver";
 import { usePendingActions } from "../hooks/usePendingActions";
 import type { Note as NoteType } from "../api/noteApi";
-
-interface DraggableNoteProps {
-  id: number;
-  className?: string;
-  variant?: "grid" | "list";
-  onDragStart: (id: number) => void;
-  onDragEnd: () => void;
-  children: React.ReactNode;
-}
-
-const DraggableNote = ({ id, className, variant = "grid", onDragStart, onDragEnd, children }: DraggableNoteProps) => {
-  const controls = useDragControls();
-  const isList = variant === "list";
-
-  return (
-    <Reorder.Item
-      as="div"
-      value={id}
-      className={`relative group ${className ?? ""}`}
-      dragListener={false}
-      dragControls={controls}
-      onDragStart={() => onDragStart(id)}
-      onDragEnd={onDragEnd}
-      whileDrag={{ scale: 1.03, zIndex: 30, boxShadow: "0 12px 32px rgba(0,0,0,0.28)" }}
-      transition={{ type: "spring", stiffness: 500, damping: 40 }}
-    >
-      <button
-        type="button"
-        onPointerDown={(e) => controls.start(e)}
-        onClick={(e) => e.stopPropagation()}
-        className={`
-          absolute z-10 touch-none cursor-grab active:cursor-grabbing
-          text-muted-foreground/60 hover:text-foreground transition-colors
-          ${isList ? "left-2 top-1/2 -translate-y-1/2" : "right-3 top-3"}
-        `}
-        aria-label="Drag to reorder"
-        title="Drag to reorder"
-      >
-        <GripVertical size={16} />
-      </button>
-
-      {children}
-    </Reorder.Item>
-  );
-};
 
 const Note = () => {
   const { theme, toggleTheme } = useTheme();
@@ -311,36 +268,15 @@ const Note = () => {
     setModalOpen(false);
   };
 
-  const pageTitle =
-    activeFilter === "archive"
-      ? "Archive"
-      : activeFilter === "trash"
-        ? "Trash"
-        : activeFilter === "bookmark"
-          ? "Bookmark"
-          : "All Notes";
+  const pageTitle = getPageTitle(activeFilter);
 
   const openNote = (note: NoteType) =>
     reorderEnabled ? guardedOpen(note) : () => handleOpenModal(note);
 
-  const cardFor = (note: NoteType) => (
-    <NoteCard
+  const renderItem = (note: NoteType) => (
+    <NoteItem
       key={note.id}
-      note={note}
-      pending={isPending(note.id)}
-      onClick={openNote(note)}
-      onToggleFavorite={handleToggleFavorite}
-      onDelete={handleDeleteNote}
-      onArchive={handleArchiveNote}
-      onRestore={handleRestoreNote}
-      onPermanentDelete={handlePermanentDelete}
-      filter={activeFilter}
-    />
-  );
-
-  const listItemFor = (note: NoteType) => (
-    <NoteListItem
-      key={note.id}
+      view={view}
       note={note}
       pending={isPending(note.id)}
       onClick={openNote(note)}
@@ -479,11 +415,7 @@ const Note = () => {
           ) : total === 0 ? (
             <div className="flex items-center justify-center py-20">
               <p className="text-sm text-muted-foreground">
-                {activeFilter === "trash"
-                  ? "Trash is empty"
-                  : activeFilter === "archive"
-                    ? "No archived notes"
-                    : "No notes found"}
+                {getEmptyMessage(activeFilter)}
               </p>
             </div>
           ) : (
@@ -516,13 +448,13 @@ const Note = () => {
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
                       >
-                        {cardFor(note)}
+                        {renderItem(note)}
                       </DraggableNote>
                     ))}
                   </Reorder.Group>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-                    {notes.map(cardFor)}
+                    {notes.map(renderItem)}
                   </div>
                 )
               ) : reorderEnabled ? (
@@ -541,12 +473,12 @@ const Note = () => {
                       onDragStart={handleDragStart}
                       onDragEnd={handleDragEnd}
                     >
-                      {listItemFor(note)}
+                      {renderItem(note)}
                     </DraggableNote>
                   ))}
                 </Reorder.Group>
               ) : (
-                <div className="space-y-2">{notes.map(listItemFor)}</div>
+                <div className="space-y-2">{notes.map(renderItem)}</div>
               )}
 
               <div ref={sentryRef} className="h-px w-full" aria-hidden="true" />
@@ -631,26 +563,12 @@ const Note = () => {
       />
 
       {toast && (
-        <div className="fixed bottom-24 left-4 right-4 z-[100] sm:left-1/2 sm:right-auto sm:w-auto sm:max-w-md sm:-translate-x-1/2">
-          <div className="flex items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-            <Info size={16} className="mt-0.5 shrink-0 text-primary" />
-
-            <span className="flex-1 text-sm font-medium leading-snug text-foreground">
-              {toast.message}
-            </span>
-
-            {toast.onUndo && (
-              <button
-                onClick={handleToastUndo}
-                disabled={undoingToast}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-surface-elevated px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-background hover:text-foreground disabled:opacity-50"
-              >
-                <Undo2 size={13} />
-                {undoingToast ? "Undoing…" : "Undo"}
-              </button>
-            )}
-          </div>
-        </div>
+        <NoteToast
+          message={toast.message}
+          undoable={Boolean(toast.onUndo)}
+          undoing={undoingToast}
+          onUndo={handleToastUndo}
+        />
       )}
     </div>
   );
