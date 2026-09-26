@@ -136,7 +136,7 @@ const VoiceGuideModal = ({
 
         {/* Footer */}
         <div className="shrink-0 border-t border-border px-5 py-3">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             {/* Preference */}
             <label className="flex cursor-pointer select-none items-center gap-2 text-xs text-muted">
               <input
@@ -171,17 +171,21 @@ const VoiceGuideModal = ({
 
             {/* Actions */}
             {step === 1 ? (
-              <Button onClick={() => setStep(2)} className="shrink-0">
+              <Button onClick={() => setStep(2)} className="w-full sm:w-auto">
                 Get Started
                 <ArrowRight size={16} />
               </Button>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={() => setStep(1)}>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+                <Button
+                  variant="secondary"
+                  onClick={() => setStep(1)}
+                  className="w-full sm:w-auto"
+                >
                   Back
                 </Button>
 
-                <Button onClick={handleClose}>
+                <Button onClick={handleClose} className="w-full sm:w-auto">
                   Got it! Let's go
                   <ArrowRight size={16} />
                 </Button>

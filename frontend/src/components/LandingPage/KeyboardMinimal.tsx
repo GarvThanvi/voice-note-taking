@@ -1,9 +1,9 @@
 import { Fragment } from "react";
 import {
+  Archive,
   FileText,
   ListChecks,
   Search,
-  Trash2,
   Zap,
   ShieldCheck,
   Monitor,
@@ -28,8 +28,8 @@ const commands = [
     text: "Find my notes about system design",
   },
   {
-    icon: Trash2,
-    text: "Delete my old travel notes",
+    icon: Archive,
+    text: "Archive my old travel notes",
   },
 ];
 

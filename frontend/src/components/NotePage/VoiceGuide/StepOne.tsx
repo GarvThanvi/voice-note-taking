@@ -1,4 +1,5 @@
 import { ArrowRight, Check, Mic } from "lucide-react";
+import StatusPill from "../../ui/StatusPill";
 
 interface GuideStep {
   title: string;
@@ -129,11 +130,7 @@ const StepOne = () => {
               py-3
             "
           >
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,64,88,0.8)]" />
-
-              <span className="text-[12px] text-muted">Listening...</span>
-            </div>
+            <StatusPill label="Listening..." size="bare" />
 
             <span className="text-[12px] text-muted">0:03</span>
           </div>

@@ -1,9 +1,10 @@
-import { Mic, Circle } from "lucide-react";
+import { Mic } from "lucide-react";
 import { motion } from "framer-motion";
 
 import Container from "../ui/Container";
 import Badge from "../ui/Badge";
 import Reveal from "../ui/Reveal";
+import StatusPill from "../ui/StatusPill";
 
 const EASE: [number, number, number, number] = [0.21, 0.47, 0.32, 0.98];
 
@@ -52,80 +53,64 @@ const Shortcuts = () => {
                 </h2>
 
                 <p className="mt-4 max-w-lg text-sm leading-6 text-muted sm:text-base">
-                  Hold Ctrl + K and start talking. Your thoughts are instantly
+                  Hold Ctrl + Space and start talking. Your thoughts are instantly
                   turned into notes, tasks, and everything you need.
                 </p>
 
                 {/* Shortcut */}
-                {/* Shortcut */}
-<div className="mt-8 flex flex-col items-start gap-3">
-  {/* Keys */}
-  <div className="flex items-center">
-    <div
-      className="
-        flex h-14 min-w-20 items-center justify-center
-        rounded-l-xl
-        border border-border
-        bg-surface-elevated
-        px-5
-        text-base font-medium
-        text-foreground
-        shadow-[0_0_20px_color-mix(in_srgb,var(--color-primary)_8%,transparent)]
-      "
-    >
-      Ctrl
-    </div>
+                <div className="mt-8 flex flex-col items-start gap-3">
+                  {/* Keys */}
+                  <div className="flex items-center">
+                    <div
+                      className="
+                        flex h-14 min-w-20 items-center justify-center
+                        rounded-l-xl
+                        border border-border
+                        bg-surface-elevated
+                        px-5
+                        text-base font-medium
+                        text-foreground
+                        shadow-[0_0_20px_color-mix(in_srgb,var(--color-primary)_8%,transparent)]
+                      "
+                    >
+                      Ctrl
+                    </div>
 
-    <div
-      className="
-        flex h-14 items-center justify-center
-        border-y border-border
-        bg-surface-elevated
-        px-3
-        text-sm
-        text-muted
-      "
-    >
-      +
-    </div>
+                    <div
+                      className="
+                        flex h-14 items-center justify-center
+                        border-y border-border
+                        bg-surface-elevated
+                        px-3
+                        text-sm
+                        text-muted
+                      "
+                    >
+                      +
+                    </div>
 
-    <div
-      className="
-        flex h-14 min-w-14 items-center justify-center
-        rounded-r-xl
-        border border-border
-        bg-surface-elevated
-        px-4
-        text-xl font-medium
-        text-foreground
-        shadow-[0_0_20px_color-mix(in_srgb,var(--color-primary)_8%,transparent)]
-      "
-    >
-      K
-    </div>
-  </div>
+                    <div
+                      className="
+                        flex h-14 min-w-[6rem] items-center justify-center
+                        rounded-r-xl
+                        border border-border
+                        bg-surface-elevated
+                        px-5
+                        text-base font-medium
+                        text-foreground
+                        shadow-[0_0_20px_color-mix(in_srgb,var(--color-primary)_8%,transparent)]
+                      "
+                    >
+                      Space
+                    </div>
+                  </div>
 
-  {/* Keyboard hint */}
-  <div
-    className="
-      flex items-center gap-2
-      rounded-full
-      border border-border-subtle
-      bg-surface-elevated/60
-      px-3 py-1.5
-    "
-  >
-    <Circle
-      size={7}
-      fill="currentColor"
-      className="text-primary"
-    />
-
-    <span className="text-xs text-muted">
-      Hold Ctrl + K to start listening
-    </span>
-  </div>
-</div>
+                  {/* Keyboard hint */}
+                  <StatusPill
+                    label="Hold Ctrl + Space to start listening"
+                    size="sm"
+                  />
+                </div>
               </div>
 
               {/* Right - Voice Visualizer */}
@@ -216,37 +201,13 @@ const Shortcuts = () => {
 
                 {/* Listening status */}
                 <motion.div
-                  className="
-                    absolute bottom-2
-                    flex items-center gap-2
-                    rounded-full
-                    border border-border
-                    bg-surface-elevated
-                    px-4 py-2
-                    shadow-lg
-                  "
+                  className="absolute bottom-2"
                   initial={{ opacity: 0, y: 8 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, ease: EASE, delay: 0.3 }}
                 >
-                  <motion.span
-                    animate={{ opacity: [1, 0.35, 1] }}
-                    transition={{
-                      duration: 1.2,
-                      repeat: Infinity,
-                    }}
-                  >
-                    <Circle
-                      size={7}
-                      fill="currentColor"
-                      className="text-primary"
-                    />
-                  </motion.span>
-
-                  <span className="text-xs text-muted">
-                    Listening...
-                  </span>
+                  <StatusPill label="Listening..." size="md" pulsing />
                 </motion.div>
               </div>
             </div>

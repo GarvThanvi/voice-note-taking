@@ -20,7 +20,7 @@ const features = [
   {
     icon: PencilLine,
     title: "Smart Edit",
-    description: "Update, delete, or append notes using your voice.",
+    description: "Update, archive, or append notes using your voice.",
   },
   {
     icon: Search,

@@ -1,4 +1,4 @@
-import { Search, Moon, Sun, Grid2X2, List, Info, Menu, GripVertical } from "lucide-react";
+import { Search, Moon, Sun, Grid2X2, List, Info, Menu, GripVertical, Undo2 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import Sidebar from "../components/NotePage/Sidebar";
@@ -84,7 +84,8 @@ const Note = () => {
   const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideShowNextLogin, setGuideShowNextLogin] = useState<boolean | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info"; onUndo?: () => void } | null>(null);
+  const [undoingToast, setUndoingToast] = useState(false);
 
   const {
     notes,
@@ -199,7 +200,14 @@ const Note = () => {
         setNotes((prev) => prev.filter((n) => n.id !== noteId));
         setTotal((prev) => Math.max(0, prev - 1));
         await updateNote(noteId, { deletedAt: new Date().toISOString(), archived: false });
-        setToast({ message: `"${noteTitle}" moved to trash. You can restore it from Trash.`, type: "info" });
+        setToast({
+          message: `"${noteTitle}" moved to trash`,
+          type: "info",
+          onUndo: async () => {
+            await updateNote(noteId, { deletedAt: null });
+            reset();
+          },
+        });
       } catch {
         reset();
       }
@@ -218,6 +226,10 @@ const Note = () => {
         setToast({
           message: nextArchived ? `"${noteTitle}" archived` : `"${noteTitle}" unarchived`,
           type: "info",
+          onUndo: async () => {
+            await updateNote(noteId, { archived: !nextArchived });
+            reset();
+          },
         });
       } catch {
         reset();
@@ -256,6 +268,19 @@ const Note = () => {
         reset();
       }
     });
+
+  const handleToastUndo = async () => {
+    if (!toast?.onUndo || undoingToast) return;
+    setUndoingToast(true);
+    try {
+      await toast.onUndo();
+    } catch {
+      reset();
+    } finally {
+      setUndoingToast(false);
+      setToast(null);
+    }
+  };
 
   const handleOpenModal = (note: NoteType) => {
     setSelectedNote(note);
@@ -606,10 +631,24 @@ const Note = () => {
       />
 
       {toast && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100]">
-          <div className="flex items-center gap-3 rounded-full border border-border bg-surface px-5 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-            <Info size={16} className="text-primary shrink-0" />
-            <span className="text-sm font-medium text-foreground">{toast.message}</span>
+        <div className="fixed bottom-24 left-4 right-4 z-[100] sm:left-1/2 sm:right-auto sm:w-auto sm:max-w-md sm:-translate-x-1/2">
+          <div className="flex items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+            <Info size={16} className="mt-0.5 shrink-0 text-primary" />
+
+            <span className="flex-1 text-sm font-medium leading-snug text-foreground">
+              {toast.message}
+            </span>
+
+            {toast.onUndo && (
+              <button
+                onClick={handleToastUndo}
+                disabled={undoingToast}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-surface-elevated px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-background hover:text-foreground disabled:opacity-50"
+              >
+                <Undo2 size={13} />
+                {undoingToast ? "Undoing…" : "Undo"}
+              </button>
+            )}
           </div>
         </div>
       )}

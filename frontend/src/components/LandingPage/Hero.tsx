@@ -93,7 +93,7 @@ const Dictation = () => {
           </button>
         </div>
 
-        <span className="text-xs text-muted-foreground">⌘D to dictate</span>
+        <span className="text-xs text-muted-foreground">Ctrl + Space to dictate</span>
       </div>
     </div>
   );
