@@ -1,7 +1,7 @@
 import LegalPage, { type LegalSection } from "../components/legal/LegalPage";
 
 const LAST_UPDATED = "September 21, 2026";
-const CONTACT_EMAIL = "support@noteflow.app";
+const CONTACT_EMAIL = "garvthanvi2512@gmail.com";
 
 const sections: LegalSection[] = [
   {

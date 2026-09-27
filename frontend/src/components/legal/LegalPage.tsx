@@ -33,6 +33,13 @@ const LegalPage = ({ title, lastUpdated, intro, sections }: LegalPageProps) => {
               Last updated: {lastUpdated}
             </p>
 
+            <div className="mt-5 rounded-lg border border-yellow-500/40 bg-yellow-500/5 px-4 py-3">
+              <p className="text-sm text-muted">
+                This is a sample policy for a personal project. It is provided for demonstration
+                purposes only.
+              </p>
+            </div>
+
             <p className="mt-6 text-sm leading-6 text-muted sm:text-base">
               {intro}
             </p>
