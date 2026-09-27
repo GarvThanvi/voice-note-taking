@@ -1,6 +1,4 @@
 import "dotenv/config";
-import nodemailer from "nodemailer";
-import type { Transporter } from "nodemailer";
 
 export interface SendEmailInput {
   to: string;
@@ -9,23 +7,8 @@ export interface SendEmailInput {
   text: string;
 }
 
-let transporter: Transporter | null = null;
-
-const getTransporter = (): Transporter => {
-  if (transporter) return transporter;
-
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-  return transporter;
-};
+const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
+const SEND_TIMEOUT_MS = 10_000;
 
 export const sendEmail = async ({
   to,
@@ -33,11 +16,35 @@ export const sendEmail = async ({
   html,
   text,
 }: SendEmailInput): Promise<void> => {
-  await getTransporter().sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject,
-    html,
-    text,
+  const apiKey = process.env.BREVO_API_KEY;
+  const name = process.env.EMAIL_FROM_NAME?.trim();
+  const email = process.env.EMAIL_FROM_ADDRESS?.trim();
+
+  if (!apiKey || !email) {
+    throw new Error(
+      "Missing BREVO_API_KEY or EMAIL_FROM_ADDRESS environment variable",
+    );
+  }
+
+  const response = await fetch(BREVO_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      "content-type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: name ? { name, email } : { email },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: text,
+    }),
+    signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
   });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Brevo send failed (${response.status}): ${detail}`);
+  }
 };

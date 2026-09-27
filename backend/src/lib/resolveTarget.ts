@@ -16,7 +16,6 @@ export type ResolutionResult =
   | { status: "not_found" };
 
 const MIN_THRESHOLD = 0.2;
-const CLEAR_WINNER_SCORE = 0.35;
 const AMBIGUOUS_GAP = 0.15;
 
 export const resolveTarget = async (

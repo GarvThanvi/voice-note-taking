@@ -30,7 +30,7 @@ voice-note-taking/
 - **PostgreSQL database.** Neon is recommended because `src/lib/prisma.ts` uses `@prisma/adapter-neon`. Any Postgres works if you swap the adapter.
 - **OpenAI API key** — powers transcription and intent extraction.
 - **Google OAuth credentials** — for Google sign-in (optional locally, required for that flow).
-- **SMTP credentials** — for password-reset emails (optional, but the reset flow will not send mail without them).
+- **Brevo API key** — for password-reset emails via Brevo's HTTPS transactional API (optional, but the reset flow will not send mail without it).
 
 ## Backend setup
 
@@ -56,11 +56,9 @@ cp .env.example .env
 | `GOOGLE_CLIENT_ID` | yes* | *Required for Google sign-in. |
 | `GOOGLE_CLIENT_SECRET` | yes* | *Required for Google sign-in. |
 | `GOOGLE_CALLBACK_URL` | yes* | Must be `http://localhost:8080/api/auth/google/callback` locally. |
-| `SMTP_HOST` | yes** | **Required for password-reset emails. |
-| `SMTP_PORT` | yes** | Usually `587`. |
-| `SMTP_USER` | yes** | |
-| `SMTP_PASS` | yes** | |
-| `EMAIL_FROM` | yes** | From address shown on reset emails. |
+| `BREVO_API_KEY` | yes** | **Required for password-reset emails. Sent via Brevo's HTTPS API (port 443), so it works on hosts that block SMTP ports. |
+| `EMAIL_FROM_NAME` | no | Display name on reset emails. |
+| `EMAIL_FROM_ADDRESS` | yes** | Sender address. Must be verified in Brevo. |
 
 Generate the Prisma client and apply migrations:
 
@@ -228,7 +226,7 @@ The collection sets the bearer token automatically for protected requests, and p
 
 - **`Cannot find module '.../generated/prisma'` or type errors about Prisma** — the generated client is gitignored. Run `cd backend && npm run build`.
 - **CORS error in the browser** — `FRONTEND_URL` in `backend/.env` must exactly match the frontend origin (scheme + host + port). Multiple origins are comma-separated.
-- **Password-reset emails never arrive** — `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM` must all be set; the backend only logs email failures.
+- **Password-reset emails never arrive** — `BREVO_API_KEY` and `EMAIL_FROM_ADDRESS` must be set, and the sender address must be verified in Brevo (Senders, Domains & Dedicated IPs → Senders). The backend only logs email failures. Unlike SMTP, the HTTPS API works on platforms that block outbound SMTP ports (e.g. Railway Free/Hobby).
 - **Migration fails on `CREATE EXTENSION pg_trgm`** — your Postgres user lacks privileges. Create the extension as a superuser first, or use a database provider (e.g. Neon) that allows it.
 - **Voice commands fail** — confirm `OPENAI_API_KEY` is valid and the uploaded audio is under 25MB.
 - **Google sign-in redirects with an error** — the redirect URI registered in Google Cloud must match `GOOGLE_CALLBACK_URL` exactly.
