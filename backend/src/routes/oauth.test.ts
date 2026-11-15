@@ -273,7 +273,7 @@ test("the authorize page is script-free and shows the redirect host", { skip }, 
   assert.doesNotMatch(csp, /script-src/);
   // The destination is the host the code will be delivered to, not just the
   // registrant's chosen name.
-  assert.ok(res.text.includes("You will return to"));
+  assert.ok(res.text.includes("You'll return to"));
   assert.ok(res.text.includes("evil.example"));
   // The client's own name is attacker-controlled: it must not become markup.
   assert.ok(res.text.includes("&lt;script&gt;alert(1)&lt;/script&gt;"));

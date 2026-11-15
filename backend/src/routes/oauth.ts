@@ -108,42 +108,81 @@ const escapeHtml = (value: string): string =>
     }
   });
 
+// Mirrors the frontend's design tokens (frontend/src/index.css): dark by
+// default like the app, with its light palette for light-mode systems.
 const STYLES = `
-:root{color-scheme:light dark}
+:root{
+--bg:#050607;--surface:#0d0f10;--border:#24272a;--border-subtle:#191b1d;
+--fg:#f5f5f5;--muted:#a1a1a1;--muted-fg:#66686b;
+--primary:#ff4058;--primary-soft:#ff7184;--primary-dark:#b91f38;
+--input-bg:#050607;--shadow:0 20px 70px rgba(0,0,0,.35);
+color-scheme:dark}
+@media (prefers-color-scheme:light){:root{
+--bg:#f5f6f8;--surface:#ffffff;--border:#d9dde3;--border-subtle:#e7e9ed;
+--fg:#17191d;--muted:#4b5563;--muted-fg:#737b87;--primary-dark:#d92f46;
+--input-bg:#f5f6f8;--shadow:0 20px 60px rgba(23,25,29,.08);
+color-scheme:light}}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f5f7;color:#1d1d1f;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-.card{width:min(440px,calc(100% - 2rem));background:#fff;border:1px solid #d2d2d7;border-radius:14px;padding:2rem;box-shadow:0 12px 40px rgba(0,0,0,.08)}
-h1{font-size:1.35rem;margin:0 0 .4rem;line-height:1.3}
-.muted{color:#6e6e73;margin:0 0 1rem}
-.scopes{margin:0 0 1.25rem;padding-left:1.15rem}
-.scopes li{margin:.2rem 0}
-label{display:block;margin:0 0 .9rem;font-weight:600;font-size:.9rem}
-input{width:100%;margin-top:.35rem;padding:.65rem .75rem;border:1px solid #c7c7cc;border-radius:8px;font:inherit;background:#fff;color:inherit}
-.actions{display:flex;gap:.6rem;margin-top:.4rem}
-button{flex:1;padding:.7rem 1rem;border-radius:8px;border:1px solid #0071e3;background:#0071e3;color:#fff;font:inherit;font-weight:600;cursor:pointer}
-button.secondary{background:#fff;color:#0071e3}
-.error{background:#fff2f2;border:1px solid #ffb3b3;color:#a30000;padding:.65rem .75rem;border-radius:8px;margin:0 0 1rem}
-code{background:#f5f5f7;padding:.1rem .3rem;border-radius:4px;word-break:break-all}
-@media (prefers-color-scheme:dark){
-body{background:#000;color:#f5f5f7}
-.card{background:#1c1c1e;border-color:#3a3a3c}
-.muted{color:#98989d}
-input{background:#2c2c2e;border-color:#48484a}
-button.secondary{background:#1c1c1e}
-code{background:#2c2c2e}
-.error{background:#3a1414;border-color:#7a1f1f;color:#ffb3b3}
-}`;
+html,body{margin:0}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;padding:2.5rem 1rem;background:var(--bg);color:var(--fg);font-family:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.brand{display:flex;align-items:center;gap:.6rem;font-size:1.1rem;font-weight:600;letter-spacing:-.02em}
+.brand svg{display:block}
+.card{position:relative;overflow:hidden;width:min(440px,100%);background:var(--surface);border:1px solid var(--border);border-radius:1rem;padding:2rem 1.75rem;box-shadow:var(--shadow)}
+.card::before{content:"";position:absolute;left:50%;top:-3rem;width:16rem;height:8rem;transform:translateX(-50%);border-radius:9999px;background:rgba(255,64,88,.08);filter:blur(48px);pointer-events:none}
+.card>*{position:relative}
+.apps{display:flex;align-items:center;justify-content:center;gap:.75rem;margin:0 0 1.25rem}
+.app{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:1.05rem;border:1px solid var(--border);background:var(--bg);color:var(--fg)}
+.app.nf{background:none;border:0}.app.nf svg{width:44px;height:44px}
+.dots{display:flex;gap:4px}.dots i{width:4px;height:4px;border-radius:50%;background:var(--muted-fg)}
+h1{font-size:1.4rem;font-weight:600;letter-spacing:-.03em;line-height:1.3;margin:0 0 .35rem;text-align:center}
+.lead{color:var(--muted);font-size:.9rem;margin:0 0 1.5rem;text-align:center;line-height:1.5}
+.muted{color:var(--muted);font-size:.875rem;line-height:1.5;margin:0 0 1rem}
+.panel{border:1px solid var(--border);border-radius:.75rem;background:var(--bg);padding:.9rem 1rem;margin:0 0 1.5rem}
+.panel-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-fg);margin:0 0 .6rem}
+.scopes{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.scopes li{display:flex;align-items:flex-start;gap:.6rem;font-size:.9rem}
+.scopes li::before{content:"";flex:none;width:16px;height:16px;margin-top:2px;border-radius:50%;background:rgba(255,64,88,.15) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.2l2.2 2.2 4.8-4.8' fill='none' stroke='%23ff4058' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat}
+.dest{border-top:1px solid var(--border-subtle);margin:.85rem 0 0;padding-top:.75rem;font-size:.8rem;color:var(--muted)}
+.dest strong{color:var(--fg);font-weight:500;word-break:break-all}
+form{display:grid;gap:1rem}
+label{display:grid;gap:.5rem;font-size:.875rem;font-weight:400}
+input{height:48px;width:100%;padding:0 1rem;border:1px solid var(--border);border-radius:.625rem;background:var(--input-bg);color:var(--fg);font:inherit;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s}
+input::placeholder{color:var(--muted-fg)}
+input:focus{border-color:rgba(255,64,88,.5);box-shadow:0 0 0 3px rgba(255,64,88,.1)}
+.actions{display:grid;gap:.6rem;margin-top:.5rem}
+button{height:46px;border-radius:.625rem;font:inherit;font-size:.9rem;font-weight:500;cursor:pointer;transition:transform .2s,box-shadow .2s,background .2s,border-color .2s}
+button.primary{border:0;color:#fff;background:linear-gradient(90deg,var(--primary),var(--primary-soft),var(--primary-dark));box-shadow:0 4px 20px rgba(255,64,88,.2)}
+button.primary:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(255,64,88,.3)}
+button.secondary{border:1px solid var(--border);background:transparent;color:var(--fg)}
+button.secondary:hover{border-color:rgba(255,64,88,.4)}
+button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.error{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);color:#f87171;font-size:.875rem;padding:.7rem .85rem;border-radius:.625rem;margin:0 0 1rem}
+.hint{font-size:.78rem;color:var(--muted-fg);text-align:center;margin:1.25rem 0 0;line-height:1.5}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem;background:var(--bg);border:1px solid var(--border);padding:.15rem .4rem;border-radius:6px;word-break:break-all}
+.footer{font-size:.75rem;color:var(--muted-fg)}
+@media (max-width:420px){.card{padding:1.75rem 1.25rem}}`;
+
+const FONT_LINKS = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">`;
+
+// The same mark as frontend/public/favicon.svg.
+const LOGO = `<svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#ff4058"/><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2" transform="translate(4 4)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 const htmlPage = (title: string, content: string): string => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
 <title>${escapeHtml(title)}</title>
+${FONT_LINKS}
 <style>${STYLES}</style>
 </head>
 <body>
+<div class="brand">${LOGO}<span>NoteFlow</span></div>
 <main class="card">${content}</main>
+<p class="footer">Only approve apps you trust.</p>
 </body>
 </html>`;
 
@@ -160,9 +199,12 @@ const renderErrorPage = (
       htmlPage(
         "Could not connect",
         `<h1>Could not connect</h1>
-<p class="muted">${escapeHtml(description)}</p>
-<p><code>${escapeHtml(code)}</code></p>
-<p class="muted">Close this tab and start the connection again from the app.</p>`,
+<p class="lead">${escapeHtml(description)}.</p>
+<div class="panel">
+<p class="panel-title">Error code</p>
+<code>${escapeHtml(code)}</code>
+</div>
+<p class="muted" style="text-align:center;margin:0">Close this tab and start the connection again from the app.</p>`,
       ),
     );
 };
@@ -195,6 +237,11 @@ const hiddenFields = (request: AuthorizeRequest): string => {
     .join("\n");
 };
 
+// First letter of the client's name for its badge; registrants choose the
+// name, so fall back to "?" for one with no letters or digits.
+const initialOf = (name: string): string =>
+  name.match(/[\p{L}\p{N}]/u)?.[0]?.toUpperCase() ?? "?";
+
 const renderAuthorizePage = (res: Response, state: FormState): void => {
   const scopes = state.request.scopes
     .map((scope) => `<li>${escapeHtml(SCOPE_COPY[scope] ?? scope)}</li>`)
@@ -216,7 +263,9 @@ const renderAuthorizePage = (res: Response, state: FormState): void => {
     "Content-Security-Policy",
     [
       "default-src 'none'",
-      "style-src 'unsafe-inline'",
+      "style-src 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src https://fonts.gstatic.com",
+      "img-src data:",
       `form-action 'self' ${redirectUrl.origin}`,
       "frame-ancestors 'none'",
       "base-uri 'none'",
@@ -229,20 +278,29 @@ const renderAuthorizePage = (res: Response, state: FormState): void => {
     .send(
       htmlPage(
         `Connect ${state.clientName} to NoteFlow`,
-        `<h1>Connect ${escapeHtml(state.clientName)} to NoteFlow</h1>
-<p class="muted">${escapeHtml(state.clientName)} is asking to access your NoteFlow account.</p>
+        `<div class="apps" aria-hidden="true">
+<span class="app">${escapeHtml(initialOf(state.clientName))}</span>
+<span class="dots"><i></i><i></i><i></i></span>
+<span class="app nf">${LOGO}</span>
+</div>
+<h1>Connect ${escapeHtml(state.clientName)}</h1>
+<p class="lead">${escapeHtml(state.clientName)} wants access to your NoteFlow account. Sign in to approve.</p>
+<div class="panel">
+<p class="panel-title">This will allow it to</p>
 <ul class="scopes">${scopes}</ul>
-<p class="muted">You will return to <strong>${escapeHtml(destination)}</strong>.</p>
+<p class="dest">You'll return to <strong>${escapeHtml(destination)}</strong></p>
+</div>
 ${error}
 <form method="post" action="/oauth/authorize">
 ${hiddenFields(state.request)}
-<label>Email<input type="email" name="email" autocomplete="username" required value="${escapeHtml(state.email ?? "")}"></label>
-<label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+<label>Email<input type="email" name="email" autocomplete="username" placeholder="you@example.com" required value="${escapeHtml(state.email ?? "")}"></label>
+<label>Password<input type="password" name="password" autocomplete="current-password" placeholder="Your NoteFlow password" required></label>
 <div class="actions">
-<button type="submit" name="decision" value="allow">Allow</button>
-<button type="submit" name="decision" value="deny" class="secondary">Deny</button>
+<button type="submit" name="decision" value="allow" class="primary">Allow access</button>
+<button type="submit" name="decision" value="deny" class="secondary" formnovalidate>Cancel</button>
 </div>
-</form>`,
+</form>
+<p class="hint">Signed in with Google? Create a personal access token in NoteFlow Settings → AI access instead.</p>`,
       ),
     );
 };
