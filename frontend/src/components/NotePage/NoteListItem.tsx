@@ -1,5 +1,8 @@
 import { Bookmark, Trash2, Archive, ArchiveRestore, Undo2, X } from "lucide-react";
 import type { Note } from "../../api/noteApi";
+import type { NoteLabel } from "../../api/labelApi";
+import { splitChips } from "../../lib/labelStyle";
+import LabelChip from "./LabelChip";
 
 interface NoteListItemProps {
   note: Note;
@@ -10,13 +13,18 @@ interface NoteListItemProps {
   onArchive?: (noteId: number) => void;
   onRestore?: (noteId: number) => void;
   onPermanentDelete?: (noteId: number) => void;
+  onLabelClick?: (label: NoteLabel) => void;
   filter?: string;
 }
 
 const ACTION_BUTTON =
   "w-8 h-8 rounded-md flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
 
-const NoteListItem = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, filter }: NoteListItemProps) => {
+const NoteListItem = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, onLabelClick, filter }: NoteListItemProps) => {
+  const labels = note.labels ?? [];
+  const { visible, hiddenCount } = splitChips(labels, 2);
+  const labelsClickable = filter !== "archive" && filter !== "trash" && Boolean(onLabelClick);
+
   return (
     <article
       onClick={onClick}
@@ -39,9 +47,27 @@ const NoteListItem = ({ note, pending, onClick, onToggleFavorite, onDelete, onAr
       "
     >
       <div className="flex-1 min-w-0">
-        <h2 className="font-semibold text-sm truncate">
-          {note.title || "Untitled"}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-sm truncate">
+            {note.title || "Untitled"}
+          </h2>
+          {labels.length > 0 && (
+            <div className="flex items-center gap-1 shrink-0">
+              {visible.map((label) => (
+                <LabelChip
+                  key={label.id}
+                  label={label}
+                  onClick={labelsClickable ? onLabelClick : undefined}
+                />
+              ))}
+              {hiddenCount > 0 && (
+                <span className="text-[11px] text-muted-foreground">
+                  +{hiddenCount}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
         <p className="text-sm text-muted mt-1 truncate">
           {note.type === "CHECKBOX" && note.todos
             ? note.todos.map((todo, index) => (

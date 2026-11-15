@@ -3,6 +3,11 @@ import { createUndoToken } from "./undoStore.js";
 import type { VoiceIntent } from "./extractIntent.js";
 import type { ResolutionResult, ResolvedTarget } from "./resolveTarget.js";
 
+const noteInclude = {
+  todos: { orderBy: { order: "asc" } },
+  labels: { select: { id: true, name: true, color: true } },
+} as const;
+
 export interface ExecutionNote {
   id: number;
   userId: number;
@@ -14,6 +19,7 @@ export interface ExecutionNote {
   createdAt: Date;
   updatedAt: Date;
   todos?: { id: number; noteId: number; text: string; done: boolean; order: number }[];
+  labels: { id: number; name: string; color: string }[];
 }
 
 export interface ExecutionResult {
@@ -113,7 +119,7 @@ const executeCreateNote = async (
 
       return tx.note.findUnique({
         where: { id: n.id },
-        include: { todos: { orderBy: { order: "asc" } } },
+        include: noteInclude,
       });
     });
 
@@ -145,6 +151,7 @@ const executeCreateNote = async (
       content,
       order: (minOrder._min.order ?? 0) - 1,
     },
+    include: noteInclude,
   });
   const undoToken = createUndoToken("create_note", userId, { noteId: note.id });
 
@@ -195,7 +202,7 @@ const executeAddTodo = async (
     const updated = await prisma.note.update({
       where: { id: note.id },
       data: { content: newContent },
-      include: { todos: true },
+      include: noteInclude,
     });
 
     const undoToken = createUndoToken("add_todo", userId, {
@@ -221,7 +228,7 @@ const executeAddTodo = async (
 
   const noteWithTodos = await prisma.note.findUnique({
     where: { id: note.id },
-    include: { todos: { orderBy: { order: "asc" } } },
+    include: noteInclude,
   });
 
   const undoToken = createUndoToken("add_todo", userId, {
@@ -296,7 +303,7 @@ const executeMarkDone = async (
 
   const noteWithTodos = await prisma.note.findUnique({
     where: { id: todo.noteId },
-    include: { todos: { orderBy: { order: "asc" } } },
+    include: noteInclude,
   });
 
   const undoToken = createUndoToken("mark_done", userId, {
@@ -380,7 +387,7 @@ const executeUpdateTodo = async (
 
   const noteWithTodos = await prisma.note.findUnique({
     where: { id: todo.noteId },
-    include: { todos: { orderBy: { order: "asc" } } },
+    include: noteInclude,
   });
 
   const undoToken = createUndoToken("update_todo", userId, {
@@ -416,7 +423,7 @@ const executeUpdateNote = async (
 
   const note = await prisma.note.findFirst({
     where: { id: target.noteId, userId, archived: false },
-    include: { todos: true },
+    include: noteInclude,
   });
 
   if (!note) {
@@ -450,7 +457,7 @@ const executeUpdateNote = async (
   const updated = await prisma.note.update({
     where: { id: note.id },
     data: { content: newContent },
-    include: { todos: true },
+    include: noteInclude,
   });
 
   const undoToken = createUndoToken("update_note", userId, {
@@ -485,7 +492,7 @@ const executeArchive = async (
 
   const note = await prisma.note.findFirst({
     where: { id: target.noteId, userId, archived: false },
-    include: { todos: { orderBy: { order: "asc" } } },
+    include: noteInclude,
   });
 
   if (!note) {
@@ -499,7 +506,7 @@ const executeArchive = async (
   const updated = await prisma.note.update({
     where: { id: note.id },
     data: { archived: true },
-    include: { todos: { orderBy: { order: "asc" } } },
+    include: noteInclude,
   });
 
   const undoToken = createUndoToken("archive", userId, {

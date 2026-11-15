@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { getNotes } from "../api/noteApi";
 import type { Note } from "../api/noteApi";
+import { parseLabelFilter } from "../lib/labelStyle";
 
 const DEFAULT_LIMIT = 12;
 
@@ -52,6 +53,7 @@ export function useInfiniteNotes(
       bookmarked: filter === "bookmark",
       archived: filter === "archive",
       trashed: filter === "trash",
+      labelId: parseLabelFilter(filter),
       search: search || undefined,
       page,
       limit,

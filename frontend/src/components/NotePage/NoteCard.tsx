@@ -1,5 +1,8 @@
 import { Bookmark, Trash2, Archive, ArchiveRestore, Undo2, X } from "lucide-react";
 import type { Note } from "../../api/noteApi";
+import type { NoteLabel } from "../../api/labelApi";
+import { splitChips } from "../../lib/labelStyle";
+import LabelChip from "./LabelChip";
 
 interface NoteCardProps {
   note: Note;
@@ -10,13 +13,18 @@ interface NoteCardProps {
   onArchive?: (noteId: number) => void;
   onRestore?: (noteId: number) => void;
   onPermanentDelete?: (noteId: number) => void;
+  onLabelClick?: (label: NoteLabel) => void;
   filter?: string;
 }
 
 const ACTION_BUTTON =
   "w-8 h-8 rounded-md flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
 
-const NoteCard = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, filter }: NoteCardProps) => {
+const NoteCard = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchive, onRestore, onPermanentDelete, onLabelClick, filter }: NoteCardProps) => {
+  const labels = note.labels ?? [];
+  const { visible, hiddenCount } = splitChips(labels);
+  const labelsClickable = filter !== "archive" && filter !== "trash" && Boolean(onLabelClick);
+
   return (
     <article
       onClick={onClick}
@@ -43,6 +51,21 @@ const NoteCard = ({ note, pending, onClick, onToggleFavorite, onDelete, onArchiv
       <h2 className="text-[16px] font-semibold leading-6 text-foreground pr-7 line-clamp-2">
         {note.title || "Untitled"}
       </h2>
+
+      {labels.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          {visible.map((label) => (
+            <LabelChip
+              key={label.id}
+              label={label}
+              onClick={labelsClickable ? onLabelClick : undefined}
+            />
+          ))}
+          {hiddenCount > 0 && (
+            <span className="text-[11px] text-muted-foreground">+{hiddenCount}</span>
+          )}
+        </div>
+      )}
 
       <div className="mt-3 text-sm text-muted leading-6 whitespace-pre-line line-clamp-5">
         {note.type === "CHECKBOX" && note.todos

@@ -1,6 +1,7 @@
 import NoteCard from "./NoteCard";
 import NoteListItem from "./NoteListItem";
 import type { Note } from "../../api/noteApi";
+import type { NoteLabel } from "../../api/labelApi";
 
 interface NoteItemProps {
   view: "grid" | "list";
@@ -12,6 +13,7 @@ interface NoteItemProps {
   onArchive?: (noteId: number) => void;
   onRestore?: (noteId: number) => void;
   onPermanentDelete?: (noteId: number) => void;
+  onLabelClick?: (label: NoteLabel) => void;
   filter?: string;
 }
 

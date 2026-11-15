@@ -42,7 +42,7 @@ const ConfirmModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center">
+    <div className="fixed inset-0 z-[140] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
 
       <div className="relative w-[calc(100%-2rem)] sm:w-full max-w-sm bg-background border border-border rounded-2xl shadow-2xl p-6">

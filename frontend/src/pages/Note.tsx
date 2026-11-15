@@ -7,6 +7,7 @@ import DraggableNote from "../components/NotePage/DraggableNote";
 import NoteToast from "../components/NotePage/NoteToast";
 import { getPageTitle, getEmptyMessage } from "../components/NotePage/notesMeta";
 import NoteModal from "../components/NotePage/NoteModal";
+import LabelModal from "../components/NotePage/LabelModal";
 import NoteSkeleton from "../components/NotePage/NoteSkeleton";
 import NoteEndIndicator from "../components/NotePage/NoteEndIndicator";
 import VoiceControl from "../components/NotePage/VoiceControl";
@@ -25,7 +26,10 @@ import { useDebounce } from "../hooks/useDebounce";
 import { useInfiniteNotes } from "../hooks/useInfiniteNotes";
 import { useIntersectionObserver } from "../hooks/useIntersectionObserver";
 import { usePendingActions } from "../hooks/usePendingActions";
+import { useLabels } from "../hooks/useLabels";
+import { labelFilterValue, hasLabel, parseLabelFilter } from "../lib/labelStyle";
 import type { Note as NoteType } from "../api/noteApi";
+import type { Label } from "../api/labelApi";
 
 const Note = () => {
   const { theme, toggleTheme } = useTheme();
@@ -43,6 +47,20 @@ const Note = () => {
   const [guideShowNextLogin, setGuideShowNextLogin] = useState<boolean | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "info"; onUndo?: () => void } | null>(null);
   const [undoingToast, setUndoingToast] = useState(false);
+  const [labelDialog, setLabelDialog] = useState<{ open: boolean; label: Label | null }>({
+    open: false,
+    label: null,
+  });
+
+  const {
+    labels,
+    create: createLabelMutation,
+    update: updateLabelMutation,
+    remove: removeLabelMutation,
+    refresh: refreshLabels,
+  } = useLabels();
+
+  const labelId = parseLabelFilter(activeFilter);
 
   const {
     notes,
@@ -150,6 +168,12 @@ const Note = () => {
       }
     });
 
+  const sameLabelIds = (a: { id: number }[] | undefined, b: { id: number }[] | undefined) => {
+    const left = a ?? [];
+    const right = b ?? [];
+    return left.length === right.length && left.every((label) => right.some((other) => other.id === label.id));
+  };
+
   const handleDeleteNote = (noteId: number) =>
     run(noteId, async () => {
       try {
@@ -157,11 +181,13 @@ const Note = () => {
         setNotes((prev) => prev.filter((n) => n.id !== noteId));
         setTotal((prev) => Math.max(0, prev - 1));
         await updateNote(noteId, { deletedAt: new Date().toISOString(), archived: false });
+        void refreshLabels();
         setToast({
           message: `"${noteTitle}" moved to trash`,
           type: "info",
           onUndo: async () => {
             await updateNote(noteId, { deletedAt: null });
+            void refreshLabels();
             reset();
           },
         });
@@ -179,12 +205,14 @@ const Note = () => {
         setNotes((prev) => prev.filter((n) => n.id !== noteId));
         setTotal((prev) => Math.max(0, prev - 1));
         await updateNote(noteId, { archived: nextArchived });
+        void refreshLabels();
         const noteTitle = note.title || "Note";
         setToast({
           message: nextArchived ? `"${noteTitle}" archived` : `"${noteTitle}" unarchived`,
           type: "info",
           onUndo: async () => {
             await updateNote(noteId, { archived: !nextArchived });
+            void refreshLabels();
             reset();
           },
         });
@@ -199,6 +227,7 @@ const Note = () => {
         await updateNote(noteId, { deletedAt: null });
         setNotes((prev) => prev.filter((n) => n.id !== noteId));
         setTotal((prev) => Math.max(0, prev - 1));
+        void refreshLabels();
       } catch {
         reset();
       }
@@ -210,6 +239,7 @@ const Note = () => {
         setNotes((prev) => prev.filter((n) => n.id !== noteId));
         setTotal((prev) => Math.max(0, prev - 1));
         await permanentDeleteNote(noteId);
+        void refreshLabels();
       } catch {
         reset();
       }
@@ -221,6 +251,7 @@ const Note = () => {
         await emptyTrash();
         setNotes([]);
         setTotal(0);
+        void refreshLabels();
       } catch {
         reset();
       }
@@ -251,24 +282,77 @@ const Note = () => {
   };
 
   const handleNoteCreated = (note: NoteType) => {
-    if (activeFilter === "all") {
+    const matchesLabel = labelId !== undefined && hasLabel(note.labels, labelId);
+    if (activeFilter === "all" || matchesLabel) {
       setNotes((prev) => [note, ...prev]);
       setTotal((prev) => prev + 1);
     }
+    void refreshLabels();
     setModalOpen(false);
   };
 
   const handleNoteUpdated = (updated: NoteType) => {
-    setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+    const previous = notes.find((n) => n.id === updated.id);
+    const matchesLabel = labelId !== undefined && hasLabel(updated.labels, labelId);
+
+    if (labelId !== undefined && !matchesLabel) {
+      if (previous) {
+        setNotes((prev) => prev.filter((n) => n.id !== updated.id));
+        setTotal((prev) => Math.max(0, prev - 1));
+      }
+    } else {
+      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+    }
+
+    if (!previous || !sameLabelIds(previous.labels, updated.labels)) {
+      void refreshLabels();
+    }
   };
 
   const handleNoteDeleted = (noteId: number) => {
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
     setTotal((prev) => Math.max(0, prev - 1));
+    void refreshLabels();
     setModalOpen(false);
   };
 
-  const pageTitle = getPageTitle(activeFilter);
+  const patchNoteLabels = (
+    id: number,
+    next: { name: string; color: string } | null
+  ) => {
+    setNotes((prev) =>
+      prev.map((note) => ({
+        ...note,
+        labels: next
+          ? note.labels.map((label) => (label.id === id ? { ...label, ...next } : label))
+          : note.labels.filter((label) => label.id !== id),
+      }))
+    );
+  };
+
+  const handleLabelSubmit = async (data: { name: string; color: string }) => {
+    if (labelDialog.label) {
+      const updated = await updateLabelMutation(labelDialog.label.id, data);
+      patchNoteLabels(updated.id, { name: updated.name, color: updated.color });
+    } else {
+      await createLabelMutation(data);
+    }
+  };
+
+  const handleLabelDelete = async () => {
+    const target = labelDialog.label;
+    if (!target) return;
+    await removeLabelMutation(target.id);
+    patchNoteLabels(target.id, null);
+    if (activeFilter === labelFilterValue(target.id)) {
+      setActiveFilter("all");
+    }
+  };
+
+  const pageTitle =
+    labelId !== undefined
+      ? labels.find((label) => label.id === labelId)?.name ?? "Label"
+      : getPageTitle(activeFilter);
 
   const openNote = (note: NoteType) =>
     reorderEnabled ? guardedOpen(note) : () => handleOpenModal(note);
@@ -285,6 +369,7 @@ const Note = () => {
       onArchive={handleArchiveNote}
       onRestore={handleRestoreNote}
       onPermanentDelete={handlePermanentDelete}
+      onLabelClick={(label) => setActiveFilter(labelFilterValue(label.id))}
       filter={activeFilter}
     />
   );
@@ -295,6 +380,9 @@ const Note = () => {
         onNewNote={handleNewNote}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
+        labels={labels}
+        onNewLabel={() => setLabelDialog({ open: true, label: null })}
+        onEditLabel={(label) => setLabelDialog({ open: true, label })}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -415,7 +503,9 @@ const Note = () => {
           ) : total === 0 ? (
             <div className="flex items-center justify-center py-20">
               <p className="text-sm text-muted-foreground">
-                {getEmptyMessage(activeFilter)}
+                {labelId !== undefined && !debouncedSearch
+                  ? "No notes with this label"
+                  : getEmptyMessage(activeFilter)}
               </p>
             </div>
           ) : (
@@ -499,6 +589,9 @@ const Note = () => {
         key={selectedNote?.id ?? `new-${newNoteKey}`}
         isOpen={modalOpen}
         note={selectedNote}
+        labels={labels}
+        onCreateLabel={createLabelMutation}
+        defaultLabelIds={labelId !== undefined ? [labelId] : []}
         onClose={() => setModalOpen(false)}
         onNoteCreated={handleNoteCreated}
         onNoteUpdated={handleNoteUpdated}
@@ -506,8 +599,27 @@ const Note = () => {
         onArchive={handleArchiveNote}
       />
 
+      {labelDialog.open && (
+        <LabelModal
+          isOpen
+          label={labelDialog.label}
+          onClose={() => setLabelDialog({ open: false, label: null })}
+          onSubmit={handleLabelSubmit}
+          onDelete={labelDialog.label ? handleLabelDelete : undefined}
+        />
+      )}
+
       <VoiceControl
         onActionDone={(note, action) => {
+          void refreshLabels();
+
+          if (labelId !== undefined) {
+            setModalOpen(false);
+            setSelectedNote(null);
+            reset();
+            return;
+          }
+
           if (action === "archive" && note) {
             setNotes((prev) => prev.filter((n) => n.id !== note.id));
             setTotal((prev) => Math.max(0, prev - 1));
@@ -535,6 +647,7 @@ const Note = () => {
         }}
         onUndo={() => {
           setModalOpen(false);
+          void refreshLabels();
           reset();
         }}
         onSearch={(query) => {

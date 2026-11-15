@@ -5,6 +5,7 @@ export const noteSchema = z.object({
   title: z.string().optional(),
   type: z.enum(["CHECKBOX", "PARAGRAPH"]),
   todos: z.array(z.string()).optional(),
+  labelIds: z.array(z.number().int().positive()).max(20).optional(),
 });
 
 export type NoteInput = z.infer<typeof noteSchema>;
@@ -32,6 +33,7 @@ export const updateNoteSchema = z.object({
   deletedAt: z.string().nullable().optional(),
   bookmarked: z.boolean().optional(),
   todos: z.array(todoUpdateSchema).optional(),
+  labelIds: z.array(z.number().int().positive()).max(20).optional(),
 });
 
 export type UpdateNoteInput = z.infer<typeof updateNoteSchema>;

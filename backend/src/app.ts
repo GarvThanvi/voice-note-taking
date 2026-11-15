@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import authRoutes from "./routes/auth.js";
 import noteRoutes from "./routes/note.js";
+import labelRoutes from "./routes/label.js";
 import voiceRoutes from "./routes/voice.js";
 import voiceUndoRoutes from "./routes/voiceUndo.js";
 import passwordResetRoutes from "./routes/passwordReset.js";
@@ -50,6 +51,7 @@ app.use("/api/auth", passwordResetRoutes);
 app.use("/api/auth", guideRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/note", noteRoutes);
+app.use("/api/label", labelRoutes);
 app.use("/api/voice", voiceRoutes);
 app.use("/api/voice", voiceUndoRoutes);
 

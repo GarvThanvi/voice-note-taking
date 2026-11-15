@@ -12,6 +12,24 @@ const router = Router();
 
 router.use(authMiddleware);
 
+const resolveLabelIds = async (
+  userId: number,
+  labelIds: number[],
+): Promise<number[]> => {
+  const unique = [...new Set(labelIds)];
+  if (unique.length === 0) return [];
+  const owned = await prisma.label.count({
+    where: { id: { in: unique }, userId },
+  });
+  if (owned !== unique.length) throw new Error("LABEL_NOT_FOUND");
+  return unique;
+};
+
+const noteInclude = {
+  todos: { orderBy: { order: "asc" } },
+  labels: { select: { id: true, name: true, color: true } },
+} as const;
+
 router.get("/", async (req, res) => {
   const userId: number = req.userId!;
   const {
@@ -19,6 +37,7 @@ router.get("/", async (req, res) => {
     search,
     archived,
     trashed,
+    labelId: labelIdParam,
     page: pageParam,
     limit: limitParam,
   } = req.query;
@@ -44,6 +63,16 @@ router.get("/", async (req, res) => {
   if (bookmarked === "true") {
     where.bookmarked = true;
   }
+
+  const labelId = Number(labelIdParam);
+  if (
+    labelIdParam !== undefined &&
+    Number.isInteger(labelId) &&
+    labelId > 0
+  ) {
+    where.labels = { some: { id: labelId } };
+  }
+
   if (typeof search === "string" && search.trim()) {
     where.OR = [
       { title: { contains: search.trim(), mode: "insensitive" } },
@@ -59,7 +88,7 @@ router.get("/", async (req, res) => {
   const [notes, total] = await Promise.all([
     prisma.note.findMany({
       where,
-      include: { todos: { orderBy: { order: "asc" } } },
+      include: noteInclude,
       orderBy: [{ order: "asc" }, { id: "desc" }],
       skip,
       take: limit,
@@ -81,6 +110,7 @@ router.get("/", async (req, res) => {
         createdAt: note.createdAt,
         updatedAt: note.updatedAt,
         order: note.order,
+        labels: note.labels,
       };
     }
     if (note.type === "CHECKBOX") {
@@ -96,6 +126,7 @@ router.get("/", async (req, res) => {
         createdAt: note.createdAt,
         updatedAt: note.updatedAt,
         order: note.order,
+        labels: note.labels,
       };
     }
   });
@@ -123,6 +154,18 @@ router.post("/", async (req, res) => {
 
   const noteData = result.data;
 
+  let labelIds: number[] = [];
+  try {
+    labelIds = await resolveLabelIds(userId, noteData.labelIds ?? []);
+  } catch {
+    return res.status(404).json({
+      success: false,
+      message: "Label not found",
+    });
+  }
+
+  const labelConnections = labelIds.map((id) => ({ id }));
+
   const newNote = await prisma.$transaction(async (tx) => {
     const minOrder = await tx.note.aggregate({
       where: { userId },
@@ -131,14 +174,20 @@ router.post("/", async (req, res) => {
     const nextOrder = (minOrder._min.order ?? 0) - 1;
 
     if (noteData.type === "PARAGRAPH") {
-      return tx.note.create({
+      const note = await tx.note.create({
         data: {
           type: "PARAGRAPH",
           content: noteData.content!,
           userId,
           title: noteData.title || "",
           order: nextOrder,
+          labels: { connect: labelConnections },
         },
+      });
+
+      return tx.note.findUnique({
+        where: { id: note.id },
+        include: noteInclude,
       });
     }
 
@@ -150,6 +199,7 @@ router.post("/", async (req, res) => {
           title: noteData.title || "",
           content: "",
           order: nextOrder,
+          labels: { connect: labelConnections },
         },
       });
 
@@ -165,13 +215,7 @@ router.post("/", async (req, res) => {
 
       return tx.note.findUnique({
         where: { id: note.id },
-        include: {
-          todos: {
-            orderBy: {
-              order: "asc",
-            },
-          },
-        },
+        include: noteInclude,
       });
     }
 
@@ -240,10 +284,22 @@ router.put("/:noteId", async (req, res, next) => {
       });
     }
 
-    const { todos, ...fields } = result.data;
+    const { todos, labelIds, ...fields } = result.data;
     const cleanFields = Object.fromEntries(
       Object.entries(fields).filter(([_, v]) => v !== undefined),
     );
+
+    let resolvedLabelIds: number[] | undefined;
+    if (labelIds !== undefined) {
+      try {
+        resolvedLabelIds = await resolveLabelIds(userId, labelIds);
+      } catch {
+        return res.status(404).json({
+          success: false,
+          message: "Label not found",
+        });
+      }
+    }
 
     const updatedNote = await prisma.$transaction(async (tx) => {
       const existing = await tx.note.findFirst({
@@ -257,7 +313,12 @@ router.put("/:noteId", async (req, res, next) => {
 
       const updated = await tx.note.update({
         where: { id: noteId },
-        data: cleanFields,
+        data: {
+          ...cleanFields,
+          ...(resolvedLabelIds !== undefined
+            ? { labels: { set: resolvedLabelIds.map((id) => ({ id })) } }
+            : {}),
+        },
       });
 
       if (todos !== undefined) {
@@ -297,7 +358,7 @@ router.put("/:noteId", async (req, res, next) => {
 
       return tx.note.findUnique({
         where: { id: noteId },
-        include: { todos: { orderBy: { order: "asc" } } },
+        include: noteInclude,
       });
     });
 
@@ -388,7 +449,7 @@ router.put("/:noteId/order", async (req, res, next) => {
       return tx.note.update({
         where: { id: noteId },
         data: { order: newOrder },
-        include: { todos: { orderBy: { order: "asc" } } },
+        include: noteInclude,
       });
     });
 
@@ -471,7 +532,7 @@ router.put("/todo/complete/:noteId", async (req, res) => {
 
   const updatedNote = await prisma.note.findUnique({
     where: { id: noteId },
-    include: { todos: { orderBy: { order: "asc" } } },
+    include: noteInclude,
   });
 
   return res.json({ success: true, note: updatedNote });

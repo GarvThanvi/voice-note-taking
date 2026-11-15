@@ -1,4 +1,5 @@
 import api from "./axiosInstance";
+import type { NoteLabel } from "./labelApi";
 
 export interface Todo {
   id: number;
@@ -23,6 +24,7 @@ export interface Note {
   updatedAt: string;
   order: number;
   todos?: Todo[];
+  labels: NoteLabel[];
 }
 
 export interface PaginatedNotes {
@@ -37,6 +39,7 @@ interface CreateNoteData {
   title?: string;
   content?: string;
   todos?: string[];
+  labelIds?: number[];
 }
 
 interface TodoUpdateData {
@@ -53,6 +56,7 @@ interface UpdateNoteData {
   deletedAt?: string | null;
   bookmarked?: boolean;
   todos?: TodoUpdateData[];
+  labelIds?: number[];
 }
 
 export const getNotes = async (
@@ -61,6 +65,7 @@ export const getNotes = async (
     search?: string;
     archived?: boolean;
     trashed?: boolean;
+    labelId?: number;
     page?: number;
     limit?: number;
   }
@@ -70,6 +75,7 @@ export const getNotes = async (
   if (options?.search) params.set("search", options.search);
   if (options?.archived) params.set("archived", "true");
   if (options?.trashed) params.set("trashed", "true");
+  if (options?.labelId) params.set("labelId", String(options.labelId));
   params.set("page", String(options?.page ?? 1));
   params.set("limit", String(options?.limit ?? 12));
   const queryString = params.toString();

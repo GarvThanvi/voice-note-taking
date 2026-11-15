@@ -4,10 +4,15 @@ import { AnimatePresence, Reorder, useDragControls } from "framer-motion";
 import { createNote, updateNote, deleteNote, toggleTodoComplete } from "../../api/noteApi";
 import { useDebouncedCallback } from "../../hooks/useDebounce";
 import type { Note } from "../../api/noteApi";
+import type { Label } from "../../api/labelApi";
+import LabelPicker from "./LabelPicker";
 
 interface NoteModalProps {
   isOpen: boolean;
   note: Note | null;
+  labels: Label[];
+  onCreateLabel: (data: { name: string; color: string }) => Promise<Label>;
+  defaultLabelIds?: number[];
   onClose: () => void;
   onNoteCreated: (note: Note) => void;
   onNoteUpdated: (note: Note) => void;
@@ -22,9 +27,10 @@ interface NoteDraft {
   content: string;
   noteType: "PARAGRAPH" | "CHECKBOX";
   todos: TodoDraft[];
+  labelIds: number[];
 }
 
-const toDraft = (note: Note | null): NoteDraft => ({
+const toDraft = (note: Note | null, defaultLabelIds: number[] = []): NoteDraft => ({
   title: note?.title || "",
   content: note?.type === "PARAGRAPH" ? (note?.content || "") : "",
   noteType: note?.type || "PARAGRAPH",
@@ -32,6 +38,7 @@ const toDraft = (note: Note | null): NoteDraft => ({
     note?.type === "CHECKBOX"
       ? (note.todos?.map((t) => ({ key: `id:${t.id}`, text: t.text, done: t.done, id: t.id })) || [])
       : [],
+  labelIds: note ? (note.labels?.map((label) => label.id) ?? []) : defaultLabelIds,
 });
 
 interface TodoRowProps {
@@ -113,19 +120,21 @@ const TodoRow = ({ todo, index, showRemove, canToggle, onToggle, onTextChange, o
   );
 };
 
-const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNoteDeleted, onArchive }: NoteModalProps) => {
+const NoteModal = ({ isOpen, note, labels, onCreateLabel, defaultLabelIds, onClose, onNoteCreated, onNoteUpdated, onNoteDeleted, onArchive }: NoteModalProps) => {
   const isEdit = !!note;
+  const initialDraft = toDraft(note, defaultLabelIds ?? []);
   const [title, setTitle] = useState(note?.title || "");
   const [content, setContent] = useState(note?.type === "PARAGRAPH" ? (note?.content || "") : "");
   const [noteType, setNoteType] = useState<"PARAGRAPH" | "CHECKBOX">(note?.type || "PARAGRAPH");
-  const [todos, setTodos] = useState<TodoDraft[]>(toDraft(note).todos);
+  const [todos, setTodos] = useState<TodoDraft[]>(initialDraft.todos);
+  const [labelIds, setLabelIds] = useState<number[]>(initialDraft.labelIds);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const savingRef = useRef(false);
   const pendingRef = useRef(false);
   const todosDirtyRef = useRef(0);
-  const draftRef = useRef<NoteDraft>(toDraft(note));
+  const draftRef = useRef<NoteDraft>(initialDraft);
   const newKeyRef = useRef(0);
 
   const makeKey = () => `new:${++newKeyRef.current}`;
@@ -143,6 +152,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
       setContent(next.content);
       setNoteType(next.noteType);
       setTodos(next.todos);
+      setLabelIds(next.labelIds);
       draftRef.current = next;
     }
   }, [note]);
@@ -171,8 +181,9 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
                 type: draft.noteType,
                 todos: draft.todos.map((td) => ({ id: td.id, text: td.text, done: td.done })),
                 content: "",
+                labelIds: draft.labelIds,
               }
-            : { title: draft.title, type: draft.noteType, content: draft.content, todos: [] };
+            : { title: draft.title, type: draft.noteType, content: draft.content, todos: [], labelIds: draft.labelIds };
 
         const updated = await updateNote(note.id, payload);
 
@@ -229,6 +240,14 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
     setTodos(newTodos);
     draftRef.current = { ...draftRef.current, todos: newTodos };
     if (isEdit && noteType === "CHECKBOX") {
+      debouncedSave.run();
+    }
+  };
+
+  const handleLabelChange = (ids: number[]) => {
+    setLabelIds(ids);
+    draftRef.current = { ...draftRef.current, labelIds: ids };
+    if (isEdit) {
       debouncedSave.run();
     }
   };
@@ -309,8 +328,8 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
     try {
       const payload =
         noteType === "CHECKBOX"
-          ? { title: title || "Untitled", type: noteType as "CHECKBOX", todos: todos.map((t) => t.text), content: "" }
-          : { title: title || "Untitled", type: noteType as "PARAGRAPH", content, todos: [] };
+          ? { title: title || "Untitled", type: noteType as "CHECKBOX", todos: todos.map((t) => t.text), content: "", labelIds }
+          : { title: title || "Untitled", type: noteType as "PARAGRAPH", content, todos: [], labelIds };
 
       const created = await createNote(payload);
       onNoteCreated(created);
@@ -393,7 +412,7 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
           </div>
         </div>
 
-        <div className="px-4 sm:px-6 py-3 border-b border-border flex items-center gap-2">
+        <div className="px-4 sm:px-6 py-3 border-b border-border flex flex-wrap items-center gap-2">
           <button
             onClick={() => handleTypeToggle("PARAGRAPH")}
             className={`
@@ -420,6 +439,15 @@ const NoteModal = ({ isOpen, note, onClose, onNoteCreated, onNoteUpdated, onNote
             <CheckSquare size={14} />
             Checkbox
           </button>
+
+          <div className="ml-auto">
+            <LabelPicker
+              labels={labels}
+              selectedIds={labelIds}
+              onChange={handleLabelChange}
+              onCreateLabel={onCreateLabel}
+            />
+          </div>
         </div>
 
         <div className="flex-1 min-h-[200px] sm:min-h-[340px] overflow-y-auto px-4 sm:px-6 py-4">
