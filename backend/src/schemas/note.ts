@@ -1,5 +1,22 @@
 import * as z from "zod";
 
+export const appendTodosSchema = z.object({
+  items: z.array(z.string().trim().min(1).max(500)).min(1).max(50),
+});
+
+export type AppendTodosInput = z.infer<typeof appendTodosSchema>;
+
+export const singleTodoUpdateSchema = z
+  .object({
+    text: z.string().min(1).optional(),
+    done: z.boolean().optional(),
+  })
+  .refine((data) => data.text !== undefined || data.done !== undefined, {
+    message: "Provide text or done",
+  });
+
+export type SingleTodoUpdateInput = z.infer<typeof singleTodoUpdateSchema>;
+
 export const noteSchema = z.object({
   content: z.string().optional(),
   title: z.string().optional(),

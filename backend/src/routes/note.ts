@@ -1,10 +1,13 @@
 import { Router } from "express";
+import type { NoteInclude } from "../generated/prisma/models.js";
 import { prisma } from "../lib/prisma.js";
 import {
   noteSchema,
   updateNoteSchema,
   reorderNoteSchema,
   completeTodoSchema,
+  appendTodosSchema,
+  singleTodoUpdateSchema,
 } from "../schemas/note.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
@@ -25,10 +28,10 @@ const resolveLabelIds = async (
   return unique;
 };
 
-const noteInclude = {
-  todos: { orderBy: { order: "asc" } },
+const noteInclude: NoteInclude = {
+  todos: { orderBy: [{ order: "asc" }, { id: "asc" }] },
   labels: { select: { id: true, name: true, color: true } },
-} as const;
+};
 
 router.get("/", async (req, res) => {
   const userId: number = req.userId!;
@@ -142,6 +145,32 @@ router.get("/", async (req, res) => {
   });
 });
 
+router.get("/:noteId", async (req, res) => {
+  const noteId = Number(req.params.noteId);
+  const userId: number = req.userId!;
+
+  if (isNaN(noteId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid note ID",
+    });
+  }
+
+  const note = await prisma.note.findFirst({
+    where: { id: noteId, userId },
+    include: noteInclude,
+  });
+
+  if (!note) {
+    return res.status(404).json({
+      success: false,
+      message: "Note not found",
+    });
+  }
+
+  return res.status(200).json({ success: true, note });
+});
+
 router.post("/", async (req, res) => {
   const result = noteSchema.safeParse(req.body);
   const userId: number = req.userId!;
@@ -226,6 +255,72 @@ router.post("/", async (req, res) => {
     success: true,
     newNote,
   });
+});
+
+router.post("/:noteId/todos", async (req, res, next) => {
+  try {
+    const noteId = Number(req.params.noteId);
+    const userId: number = req.userId!;
+
+    if (isNaN(noteId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid note ID",
+      });
+    }
+
+    const result = appendTodosSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.error.issues[0]?.message ?? "Validation failed",
+      });
+    }
+
+    const note = await prisma.note.findFirst({
+      where: { id: noteId, userId },
+      select: { id: true, type: true },
+    });
+
+    if (!note) {
+      return res.status(404).json({
+        success: false,
+        message: "Note not found",
+      });
+    }
+
+    if (note.type !== "CHECKBOX") {
+      return res.status(400).json({
+        success: false,
+        message: "Note is not a checklist",
+      });
+    }
+
+    const updatedNote = await prisma.$transaction(async (tx) => {
+      const maxOrder = await tx.todo.aggregate({
+        where: { noteId },
+        _max: { order: true },
+      });
+      const startOrder = (maxOrder._max.order ?? -1) + 1;
+
+      await tx.todo.createMany({
+        data: result.data.items.map((text, index) => ({
+          noteId,
+          text,
+          order: startOrder + index,
+        })),
+      });
+
+      return tx.note.findFirst({
+        where: { id: noteId, userId },
+        include: noteInclude,
+      });
+    });
+
+    return res.json({ success: true, note: updatedNote });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 router.delete("/:noteId", async (req, res) => {
@@ -584,6 +679,126 @@ router.delete("/trash/empty", async (req, res) => {
       noteIds.length !== 1 ? "s" : ""
     }`,
   });
+});
+
+router.put("/:noteId/todo/:todoId", async (req, res, next) => {
+  try {
+    const noteId = Number(req.params.noteId);
+    const todoId = Number(req.params.todoId);
+    const userId: number = req.userId!;
+
+    if (isNaN(noteId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid note ID",
+      });
+    }
+
+    if (isNaN(todoId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid todo ID",
+      });
+    }
+
+    const result = singleTodoUpdateSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.error.issues[0]?.message ?? "Validation failed",
+      });
+    }
+
+    const note = await prisma.note.findFirst({
+      where: { id: noteId, userId },
+      select: { id: true },
+    });
+
+    if (!note) {
+      return res.status(404).json({
+        success: false,
+        message: "Note not found",
+      });
+    }
+
+    const { count } = await prisma.todo.updateMany({
+      where: { id: todoId, noteId },
+      data: {
+        ...(result.data.text !== undefined ? { text: result.data.text } : {}),
+        ...(result.data.done !== undefined ? { done: result.data.done } : {}),
+      },
+    });
+
+    if (count === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Todo not found",
+      });
+    }
+
+    const updatedNote = await prisma.note.findFirst({
+      where: { id: noteId, userId },
+      include: noteInclude,
+    });
+
+    return res.json({ success: true, note: updatedNote });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.delete("/:noteId/todo/:todoId", async (req, res, next) => {
+  try {
+    const noteId = Number(req.params.noteId);
+    const todoId = Number(req.params.todoId);
+    const userId: number = req.userId!;
+
+    if (isNaN(noteId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid note ID",
+      });
+    }
+
+    if (isNaN(todoId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid todo ID",
+      });
+    }
+
+    const note = await prisma.note.findFirst({
+      where: { id: noteId, userId },
+      select: { id: true },
+    });
+
+    if (!note) {
+      return res.status(404).json({
+        success: false,
+        message: "Note not found",
+      });
+    }
+
+    const { count } = await prisma.todo.deleteMany({
+      where: { id: todoId, noteId },
+    });
+
+    if (count === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Todo not found",
+      });
+    }
+
+    const updatedNote = await prisma.note.findFirst({
+      where: { id: noteId, userId },
+      include: noteInclude,
+    });
+
+    return res.json({ success: true, note: updatedNote });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 export default router;

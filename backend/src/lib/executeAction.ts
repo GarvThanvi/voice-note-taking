@@ -1,12 +1,13 @@
 import { prisma } from "./prisma.js";
+import type { NoteInclude } from "../generated/prisma/models.js";
 import { createUndoToken } from "./undoStore.js";
 import type { VoiceIntent } from "./extractIntent.js";
 import type { ResolutionResult, ResolvedTarget } from "./resolveTarget.js";
 
-const noteInclude = {
-  todos: { orderBy: { order: "asc" } },
+const noteInclude: NoteInclude = {
+  todos: { orderBy: [{ order: "asc" }, { id: "asc" }] },
   labels: { select: { id: true, name: true, color: true } },
-} as const;
+};
 
 export interface ExecutionNote {
   id: number;

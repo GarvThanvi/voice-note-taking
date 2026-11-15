@@ -21,6 +21,8 @@ model User {
   passwordResetOtps PasswordResetOtp[]
   hasSeenGuide     Boolean  @default(false)
   showGuideOnLogin Boolean  @default(false)
+  apiTokens        ApiToken[]
+  oauthTokens      OauthToken[]
 }
 
 model Note {
@@ -94,4 +96,66 @@ model PasswordResetOtp {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model ApiToken {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  name       String
+  tokenHash  String    @unique
+  prefix     String
+  scopes     String[]
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model OauthClient {
+  id           String   @id
+  name         String
+  redirectUris String[]
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime?
+}
+
+model OauthCode {
+  id                  String   @id
+  clientId            String
+  userId              Int
+  redirectUri         String
+  scopes              String[]
+  codeChallenge       String
+  codeChallengeMethod String   @default("S256")
+  resource            String?
+  expiresAt           DateTime
+  usedAt              DateTime?
+  createdAt           DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model OauthToken {
+  id               Int       @id @default(autoincrement())
+  userId           Int
+  clientId         String
+  accessTokenHash  String    @unique
+  refreshTokenHash String?   @unique
+  scopes           String[]
+  resource         String?
+  accessExpiresAt  DateTime
+  refreshExpiresAt DateTime?
+  rotatedFromId    Int?
+  // Every row in one rotation chain shares this value; a new pair owns its own
+  // id as the family id. A replay revokes the whole family in one statement.
+  familyId         String?
+  revokedAt        DateTime?
+  lastUsedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
 }
