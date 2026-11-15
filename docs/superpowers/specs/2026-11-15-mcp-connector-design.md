@@ -69,6 +69,26 @@ redirect URL to `/oauth/register` and gets a `client_id` on the spot.
 `notes:write`. The consent screen shows them, a read-only token does not see write
 tools at all, and a write call with a read-only token is refused.
 
+## The two flows, in order
+
+**Local CLI client (OpenCode, Claude Code).** You create a PAT in settings; the
+server stores only its hash and shows the string once. You paste it into the
+client's config. Every tool call is one HTTPS request to `/mcp` with
+`Authorization: Bearer nf_pat_…`; the gate hashes it, finds the `ApiToken` row,
+resolves `userId`, and the tool runs. No browser, no refresh, no session. Revoking
+the row makes the next call 401.
+
+**Cloud client (claude.ai, ChatGPT).** The client POSTs to `/mcp` with no
+credential and gets a 401 whose `WWW-Authenticate` header names the protected
+resource metadata. It reads that document, then the authorization-server
+metadata, registers itself through DCR, and opens your browser at
+`/oauth/authorize`, where *your* page takes the email and password. Your server
+redirects the browser back to the client with a one-time code; the client
+exchanges code + `code_verifier` for an access token (1 h) and refresh token
+(30 d) server-to-server. From then on every tool call is `Bearer nf_at_…`,
+server-to-server; the browser is not involved again. The user's password is only
+ever typed on the NoteFlow page, never sent to the chat provider.
+
 ## Intent and why
 
 NoteFlow is usable from its own web app and by voice. The owner wants to create
@@ -323,29 +343,39 @@ unauthenticated requests keyed by IP. `/internal/*` is loopback-only and unlimit
 | Credential | Lifetime | Storage |
 | --- | --- | --- |
 | PAT | until revoked | `ApiToken`, sha256 hash + 12-char prefix for the UI |
-| Access token | 1 hour | `OAuthToken.accessTokenHash` |
-| Refresh token | 30 days, rotated on every use | `OAuthToken.refreshTokenHash` |
-| Authorization code | 60 seconds, single use | `OAuthCode`, consumed by `usedAt` |
+| Access token | 1 hour | `OauthToken.accessTokenHash` |
+| Refresh token | 30 days, rotated on every use | `OauthToken.refreshTokenHash` |
+| Authorization code | 60 seconds, single use | `OauthCode`, consumed by `usedAt` |
 
 Revocation sets `revokedAt`; the `/mcp` gate rejects revoked, expired, or
 wrong-scope tokens on every request. A refresh token presented twice is treated as
 theft: that token family is revoked and the client must re-authorize.
 
-`OAuthToken` carries the `resource` it was minted for (RFC 8707) and `/mcp` checks
+`OauthToken` carries the `resource` it was minted for (RFC 8707) and `/mcp` checks
 it against `MCP_PUBLIC_URL` when present. A client that omits `resource` is
 accepted — many do — but a token minted for a different resource is refused.
 
 ### D9 — A real settings page ships with it
 
-`frontend` gets a `/settings` route, reached from a gear in the sidebar's user
-block, laid out like the other pages. First section: **AI access**. Create a PAT
-(name it, choose read-only or read-write, the string is shown once), list PATs with
-prefix and last used, revoke. Then **Connected apps**: client name, scopes, last
-used, revoke. Without the PAT half, a user has no way to get a token except curl.
+`frontend` gets a `/settings` route. Its entry point is a third icon in the notes
+header's existing row — `Note.tsx`, the `ml-auto flex items-center gap-5` block
+that already holds the info (guide) button and the theme toggle — placed after the
+theme toggle, `Settings` from `lucide-react`, `aria-label="Settings"`, routing to
+`/settings`. The sidebar and user block are untouched.
+
+That header exists only on the notes page, so `/settings` renders its own slim
+header: a back link to `/note`, the title, and the same theme toggle. The page
+follows the existing page shell and holds one section today: **AI access**.
+
+First section: **AI access**. Create a PAT (name it, choose read-only or
+read-write, the string is shown once), list PATs with prefix and last used,
+revoke. Then **Connected apps**: client name, scopes, last used, revoke. Without
+the PAT half, a user has no way to get a token except curl.
 
 This is a new page, not a modal inside the notes screen — the token list and the
 connected-apps list both grow, and later settings (password, guide) belong there
-too. It is the one frontend deliverable; notes UI is otherwise untouched.
+too. The notes UI change is exactly one icon button; nothing else on that screen
+moves.
 
 *D9 and D10 are my calls, not yours — say so if you'd rather defer either.*
 
@@ -392,7 +422,7 @@ model ApiToken {
   @@index([userId])
 }
 
-model OAuthClient {
+model OauthClient {
   id           String   @id            // client_id, uuid v4
   name         String
   redirectUris String[]
@@ -400,7 +430,7 @@ model OAuthClient {
   lastUsedAt   DateTime?
 }
 
-model OAuthCode {
+model OauthCode {
   id                  String   @id   // the code itself, high-entropy random
   clientId            String
   userId              Int
@@ -416,7 +446,7 @@ model OAuthCode {
   @@index([expiresAt])
 }
 
-model OAuthToken {
+model OauthToken {
   id                Int       @id @default(autoincrement())
   userId            Int
   clientId          String
@@ -436,8 +466,10 @@ model OAuthToken {
 }
 ```
 
-- `OAuthClient` is not user-owned: registration happens before anyone logs in.
+- `OauthClient` is not user-owned: registration happens before anyone logs in.
   A client id alone grants nothing; the code and token rows are user-scoped.
+- Models are named `Oauth*`, not `OAuth*`, so Prisma's generated accessors read
+  `prisma.oauthToken` rather than `prisma.oAuthToken`.
 - `redirectUris` must be `https://` or `http://localhost` / `127.0.0.1`; anything
   else is rejected at registration and re-checked when the code is redeemed.
 - Hashes are lowercase hex sha256. `prefix` is the first 12 characters of the
@@ -456,7 +488,7 @@ before `globalLimiter`; `/oauth/authorize` shares the sign-in limiter.
 | `GET` | `/.well-known/oauth-authorization-server` | none | issuer, authorize/token/register/revoke URLs, `code_challenge_methods_supported: ["S256"]`, `token_endpoint_auth_methods_supported: ["none"]` |
 | `POST` | `/oauth/register` | none | DCR: `{ client_name, redirect_uris }` → `{ client_id }`. Public client, no secret |
 | `GET` | `/oauth/authorize` | none | Minimal HTML login form; validates `client_id`, `redirect_uri`, `response_type=code`, S256 challenge, `scope`, optional `state` |
-| `POST` | `/oauth/authorize` | none | Verifies email + password, issues `OAuthCode`, 302 to `redirect_uri?code=…&state=…`; `error=access_denied` on Deny |
+| `POST` | `/oauth/authorize` | none | Verifies email + password, issues `OauthCode`, 302 to `redirect_uri?code=…&state=…`; `error=access_denied` on Deny |
 | `POST` | `/oauth/token` | none | `authorization_code` (verify PKCE: sha256(verifier) base64url == challenge) or `refresh_token` (rotate) |
 | `POST` | `/oauth/revoke` | none | Revokes the presented access or refresh token |
 | `POST`·`GET`·`DELETE` | `/mcp` | Bearer | MCP Streamable HTTP |
@@ -494,8 +526,11 @@ sidebar entry:
 - `/settings` page following the existing page shell; "AI access" section with a
   short explanation, the token table, a create modal (name, read-only vs
   read-write), a one-time reveal panel with copy and "you won't see this again",
-  then "Connected apps" with its revoke buttons.
-- Sidebar: a gear button in the user block that routes to `/settings`.
+  then "Connected apps" with its revoke buttons. Slim header: back to `/note`,
+  title, theme toggle.
+- `Note.tsx`: one new icon button after the theme toggle (`Settings` from
+  `lucide-react`, `aria-label="Settings"`, `navigate("/settings")`). No other
+  change to the notes screen.
 - Empty states explain the two ways to connect (token for local tools, connector
   for ChatGPT/Claude) in two sentences.
 
@@ -575,5 +610,5 @@ branch, never the shared one. CI (none today) is out of scope.
 - The visual design of the settings page, within existing tokens.
 - Whether `restore_note` should also un-archive, or stay strictly about trash.
 - The shape of a "connected app" row when the client registered without a name.
-- Whether `OAuthClient` rows are garbage-collected when unused for 90 days.
+- Whether `OauthClient` rows are garbage-collected when unused for 90 days.
 - Whether the settings page shows `lastUsedAt` as relative time.
