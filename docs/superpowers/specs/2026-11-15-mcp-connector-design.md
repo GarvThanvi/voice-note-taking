@@ -575,17 +575,19 @@ sidebar entry:
 
 ## Verification
 
-**Automated, offline (`npm test` in `backend/`):** token generate/hash/prefix;
-scope checks; PKCE verifier mismatch → `invalid_grant`; code reuse →
-`invalid_grant`; expired code → `invalid_grant`; refresh rotation invalidates the
-old refresh token; new zod schemas accept and reject the right bodies. These are
-pure functions plus zod — no database.
+**Automated (`npm test` in `backend/`, needs `TEST_DATABASE_URL`):** token
+generate/hash/prefix; scope checks; PKCE verifier mismatch → `invalid_grant`; code
+reuse → `invalid_grant`; expired code → `invalid_grant`; refresh rotation
+invalidates the old refresh token; new zod schemas accept and reject the right
+bodies. The pure helper tests run without touching the database; the route tests
+use it.
 
-**Automated, opt-in:** a small `supertest` suite over the exported app, enabled by
-`TEST_DATABASE_URL` and skipped when it is unset, covering the four D4 endpoints,
-`/mcp` 401 without a credential, read-only token refused at a write tool, and
-cross-user 404. `supertest` becomes a devDependency; the Neon database used is a
-branch, never the shared one. CI (none today) is out of scope.
+**Automated:** a `supertest` suite over the exported app, on the Neon test branch,
+covering the four D4 endpoints, `/mcp` 401 without a credential, read-only token
+refused at a write tool, and cross-user 404. `testEnv.ts` fails closed: it throws
+when `TEST_DATABASE_URL` is unset or equals `DATABASE_URL`, so a stray variable
+cannot run tests against production. `supertest` becomes a devDependency; CI
+(none today) is out of scope.
 
 **Manual:**
 

@@ -19,7 +19,7 @@
 - Every data query is scoped by `userId`. No route, tool or helper accepts a user id from the caller.
 - Plaintext tokens are never stored and never logged. Only SHA-256 hashes and a 12-character display prefix are persisted.
 - `globalLimiter` stays 100 req/min. `/mcp` gets its own limiter; `/internal/*` sits before `globalLimiter` and is loopback-only.
-- Backend tests: `npx tsx --test <file>` for one file, `npm test` for all (`src/**/*.test.ts`). Frontend tests: `npx vitest run <file>`.
+- Backend tests: `npx tsx --test <file>` for one file, `npm test` for all (`src/**/*.test.ts`). DB-backed test files import `testEnv.ts` first, which requires `TEST_DATABASE_URL` and refuses to run when it equals `DATABASE_URL`. Frontend tests: `npx vitest run <file>`.
 - Frontend build gate: `npm run build` and `npm run lint` in `frontend/`.
 - No new frontend dependencies; `lucide-react` and `react-router-dom` are already installed.
 - Existing response conventions: `{ success, message }` for `/api/*`; `{ error, error_description }` for `/oauth/*`.
@@ -152,10 +152,22 @@ Add to `User`: `apiTokens ApiToken[]` and `oauthTokens OauthToken[]`.
 Run (in `backend/`): `npx prisma validate`
 Expected: `The schema at prisma\schema.prisma is valid 🚀`
 
-- [ ] **Step 3: Create the migration**
+- [ ] **Step 3: Create the migration — against the test branch, never production**
 
-Run (in `backend/`): `npx prisma migrate dev --name add_mcp_tokens`
-Expected: a new `prisma/migrations/<timestamp>_add_mcp_tokens/migration.sql` with four `CREATE TABLE` statements, and `Applied`.
+Run (in `backend/`), pointing Prisma at the Neon **test branch** (never the
+database in `DATABASE_URL`):
+
+```powershell
+$env:DATABASE_URL = (Get-Content .env | Select-String '^TEST_DATABASE_URL=').Line.Split('=',2)[1].Trim('"')
+npx prisma migrate dev --name add_mcp_tokens
+```
+
+Expected: a new `prisma/migrations/<timestamp>_add_mcp_tokens/migration.sql` with
+four `CREATE TABLE` statements, and `Applied`. Then open a new shell so the
+overridden `DATABASE_URL` does not leak into later commands.
+
+Production stays untouched: `prisma migrate deploy` against the real
+`DATABASE_URL` is a deploy-time step the owner runs deliberately.
 
 If the database host does not resolve, generate the SQL offline instead and apply it later from a working network:
 
@@ -328,9 +340,30 @@ Run (in `backend/`): `npm i -D supertest @types/supertest`
 
 ```ts
 // backend/src/testEnv.ts
-process.env.DATABASE_URL ??= process.env.TEST_DATABASE_URL ?? "postgresql://test:test@localhost:5432/noteflow_test";
+import dotenv from "dotenv";
+
+const parsed = dotenv.config().parsed ?? {};
+const testUrl = process.env.TEST_DATABASE_URL ?? parsed.TEST_DATABASE_URL;
+
+if (!testUrl) {
+  throw new Error(
+    "TEST_DATABASE_URL is not set. Point it at a Neon test branch before running DB-backed tests.",
+  );
+}
+
+if (testUrl === (process.env.DATABASE_URL ?? parsed.DATABASE_URL)) {
+  throw new Error("TEST_DATABASE_URL must not equal DATABASE_URL.");
+}
+
+// The app reads DATABASE_URL at import time; force it onto the test branch so a
+// stray shell variable or .env value can never send tests to production.
+process.env.DATABASE_URL = testUrl;
 process.env.JWT_SECRET ??= "test-secret-not-for-production";
 ```
+
+Import this first in every test file that touches the app or the database. It
+deliberately throws rather than defaulting: a silent fallback to production is
+the one failure this file exists to prevent.
 
 - [ ] **Step 4: Split `app.ts` and create `server.ts`**
 
@@ -668,12 +701,15 @@ test("toSearchResult leaves short content untruncated", () => {
   assert.equal(result.truncated, false);
 });
 
-test("toolNames hides write tools from a read-only token", () => {
+test("toolNames reports only read tools for a read-only token", () => {
   const ctx = { userId: 1, scopes: [READ_SCOPE], api: {} as any };
   assert.deepEqual(toolNames(ctx), ["search_notes", "get_note", "list_labels"]);
-  const full = toolNames({ ...ctx, scopes: [READ_SCOPE, WRITE_SCOPE] });
-  assert.equal(full.length, 11);
-  assert.ok(full.includes("delete_note") && full.includes("restore_note"));
+});
+
+test("toolNames still reports only read tools before the write tools exist", () => {
+  // Task 7 registers the eight write tools and raises this to eleven.
+  const ctx = { userId: 1, scopes: [READ_SCOPE, WRITE_SCOPE], api: {} as any };
+  assert.deepEqual(toolNames(ctx), ["search_notes", "get_note", "list_labels"]);
 });
 ```
 
@@ -779,7 +815,16 @@ Every handler returns the note the API returned, plus one line naming what chang
 
 - [ ] **Step 4: Wire `registerWriteTools` into `toolNames` and the server factory**
 
-`toolNames` returns the three read names plus the eight write names when `notes:write` is in scope; the server factory registers only the tools `toolNames` reports.
+`toolNames` returns the three read names plus the eight write names when `notes:write` is in scope; the server factory registers only the tools `toolNames` reports. In `tools.test.ts`, replace the Task 6 assertion "toolNames still reports only read tools before the write tools exist" with the full eleven-name assertion below — the earlier test existed only because the write tools did not exist yet:
+
+```ts
+test("toolNames reports all eleven tools for a read-write token", () => {
+  const ctx = { userId: 1, scopes: [READ_SCOPE, WRITE_SCOPE], api: {} as any };
+  const names = toolNames(ctx);
+  assert.equal(names.length, 11);
+  assert.ok(names.includes("delete_note") && names.includes("restore_note"));
+});
+```
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
@@ -1316,6 +1361,8 @@ MCP_PUBLIC_URL="http://localhost:8080"
 # Shared secret between the API and its loopback-only /internal mount.
 # Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 MCP_INTERNAL_SECRET=""
+# Neon test branch used by DB-backed tests. Must differ from DATABASE_URL.
+TEST_DATABASE_URL=""
 ```
 
 - [ ] **Step 2: Write the README section**

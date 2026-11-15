@@ -161,6 +161,20 @@ Base URL is `http://localhost:8080`. All app endpoints live under `/api`. Protec
 | `PUT` | `/api/note/todo/complete/:noteId` | yes | Batch mark todos `done`/undone. |
 | `DELETE` | `/api/note/:noteId/permanent` | yes | Permanently delete a note. |
 | `DELETE` | `/api/note/trash/empty` | yes | Permanently delete all trashed notes. |
+| `GET` | `/api/note/:noteId` | yes | Fetch one note in any state (active, archived or trashed). |
+| `POST` | `/api/note/:noteId/todos` | yes | Append `items` to a checklist. |
+| `PUT` | `/api/note/:noteId/todo/:todoId` | yes | Update one todo's `text` and/or `done`. |
+| `DELETE` | `/api/note/:noteId/todo/:todoId` | yes | Delete one todo. |
+
+### AI access
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| `GET` | `/api/mcp/tokens` | yes | List your personal access tokens (prefix, scopes, last used). |
+| `POST` | `/api/mcp/tokens` | yes | Create a token (`name`, optional `scopes`); the plaintext is returned once. |
+| `DELETE` | `/api/mcp/tokens/:id` | yes | Revoke a token. |
+| `GET` | `/api/mcp/apps` | yes | OAuth apps (ChatGPT, Claude) with live access. |
+| `DELETE` | `/api/mcp/apps/:clientId` | yes | Revoke every token an app holds for you. |
 
 ### Voice
 
@@ -174,6 +188,62 @@ Base URL is `http://localhost:8080`. All app endpoints live under `/api`. Protec
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
 | `POST` | `/api/newsletter/subscribe` | no | Subscribe an email address. |
+
+## AI connectors (MCP)
+
+NoteFlow exposes a remote [Model Context Protocol](https://modelcontextprotocol.io) server at `/mcp`, so ChatGPT, Claude, Claude Code, OpenCode and other MCP clients can search and edit your notes. It speaks stateless Streamable HTTP and accepts either a personal access token or an OAuth 2.1 access token.
+
+### Tools
+
+| Tool | Scope | What it does |
+| --- | --- | --- |
+| `search_notes` | read | Search notes, newest first; returns snippets. |
+| `get_note` | read | Full note with todos and labels, including archived or trashed notes. |
+| `list_labels` | read | Labels with ids, colours and note counts. |
+| `create_note` | write | Create a paragraph note. |
+| `create_checklist` | write | Create a checklist from item texts. |
+| `add_todos` | write | Append items to a checklist. |
+| `update_todo` | write | Change one item's text or done state. |
+| `remove_todo` | write | Delete one checklist item. |
+| `update_note` | write | Change title, content, bookmark, archive state or labels (set, add or remove). |
+| `delete_note` | write | Move to trash, or delete permanently with `permanent: true`. |
+| `restore_note` | write | Restore a trashed note. |
+
+A read-only token sees only the three read tools.
+
+### ChatGPT and Claude (OAuth)
+
+Add a custom connector with the URL only: `https://<host>/mcp`.
+
+- **claude.ai / Claude Desktop:** Settings → Connectors → Add custom connector.
+- **ChatGPT:** Settings → Connectors → developer mode → Add (requires a paid plan).
+
+The client discovers the OAuth server from the `401` and opens NoteFlow's sign-in page. That page takes email and password only; accounts that sign in with Google should use a personal access token instead.
+
+### Local tools (personal access token)
+
+Create a token in **Settings → AI access** (the gear icon on the notes page). Copy it right away, because it is shown only once.
+
+OpenCode (`opencode.json`):
+
+```json
+{ "mcp": { "noteflow": { "type": "remote", "url": "https://<host>/mcp", "headers": { "Authorization": "Bearer nf_pat_..." }, "enabled": true } } }
+```
+
+Claude Code, and stdio-only clients through `mcp-remote`:
+
+```bash
+claude mcp add --transport http noteflow https://<host>/mcp --header "Authorization: Bearer nf_pat_..."
+npx mcp-remote https://<host>/mcp --header "Authorization: Bearer nf_pat_..."
+```
+
+### Revoking access
+
+**Settings → AI access** lists your tokens and connected apps. Revoking takes effect on the next request.
+
+### Server configuration
+
+Set `MCP_PUBLIC_URL` to the backend's public origin (it appears in the OAuth discovery documents) and `MCP_INTERNAL_SECRET` to a random string. Tool calls reach the existing REST routes through a loopback-only `/internal` mount guarded by that secret. Apply the migrations with `npx prisma migrate deploy` before the first deploy.
 
 ## Postman collection
 
