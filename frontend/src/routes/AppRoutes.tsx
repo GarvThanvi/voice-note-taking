@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import LoginSignup from "../pages/LoginSignup";
 import Note from "../pages/Note";
+import Settings from "../pages/Settings";
 import ProtectedRoutes from "./ProtectedRoutes";
 import GuestRoutes from "./GuestRoutes";
 import GoogleSuccess from "../pages/GoogleSuccess"
@@ -32,6 +33,7 @@ const AppRoutes = () => {
         </Route>
         <Route element={<ProtectedRoutes />}>
           <Route path="/note" element={<Note />}></Route>
+          <Route path="/settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

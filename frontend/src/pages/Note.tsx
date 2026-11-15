@@ -1,4 +1,5 @@
-import { Search, Moon, Sun, Grid2X2, List, Info, Menu } from "lucide-react";
+import { Search, Moon, Sun, Grid2X2, List, Info, Menu, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Reorder } from "framer-motion";
 import Sidebar from "../components/NotePage/Sidebar";
@@ -33,6 +34,7 @@ import type { Label } from "../api/labelApi";
 
 const Note = () => {
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const { user, guideRequested, clearGuideRequest, setUser } = useAuth();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
@@ -444,6 +446,14 @@ const Note = () => {
                 aria-label="Toggle theme"
               >
                 {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
+              </button>
+              <button
+                onClick={() => navigate("/settings")}
+                className="text-muted hover:text-foreground transition-colors"
+                aria-label="Settings"
+                title="Settings"
+              >
+                <Settings size={19} />
               </button>
             </div>
           </header>
